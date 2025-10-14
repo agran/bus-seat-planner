@@ -15,7 +15,8 @@ img {
 	max-width: 40em;
     position: absolute;
     left: 0.5em;
-	visibility: hidden;
+	/* visibility: hidden; */
+    pointer-events: none;
 }
 
 #mestaTable{
@@ -109,4 +110,5 @@ img {
 .pasted {
 	border-color: red;
 	border-width: 0.25em;
+
 }
