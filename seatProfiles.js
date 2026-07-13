@@ -717,12 +717,24 @@ var SeatProfiles = (function () {
           continue;
         }
         if (cell.type === "guide") {
-          // Место гида имеет номер из общей нумерации, но по умолчанию занято.
-          var gg =
-            cell.number != null
-              ? buildSeatGroup(x, y, CELL_W, CELL_H, "guide", cell.number, "guide", "Гид")
-              : buildSeatGroup(x, y, CELL_W, CELL_H, "guide", "Гид", "guide");
+          // Место гида по умолчанию занято, но остаётся переключаемым,
+          // как обычное место — просто с подписью "Гид".
+          var guideStatus =
+            initialStatus[cell.number] === "free" ? "free" : "occupied";
+          var gg = buildSeatGroup(
+            x,
+            y,
+            CELL_W,
+            CELL_H,
+            guideStatus,
+            cell.number != null ? cell.number : "Гид",
+            "guide",
+            "Гид",
+          );
           gg.setAttribute("data-guide", "true");
+          if (cell.number != null) {
+            gg.setAttribute("data-seat", cell.number);
+          }
           seatsLayer.appendChild(gg);
           continue;
         }

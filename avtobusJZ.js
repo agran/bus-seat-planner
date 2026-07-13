@@ -71,7 +71,7 @@ $(document).ready(function () {
     $("#mestaTable").html(mestaTableHtml);
   }
 
-  function buildGenericMestaTable(seatNumbers, guideCell, driverCell) {
+  function buildGenericMestaTable(seatNumbers, guideCell) {
     var mestaTableHtml = "";
     seatNumbers.forEach(function (n) {
       mestaTableHtml +=
@@ -81,19 +81,11 @@ $(document).ready(function () {
         n +
         ".</span> <span class='mesto-status mesto-status-svob'>Свободно</span> <button class=bZan>Занять</button></div>";
     });
-    if (guideCell) {
-      var guideLabel =
-        guideCell.number != null
-          ? "Гид (место " + guideCell.number + "):"
-          : "Гид:";
+    if (guideCell && guideCell.number != null) {
       mestaTableHtml +=
-        "<div class='line-mesto line-mesto-guide'><span class='mesto-n'>" +
-        guideLabel +
-        "</span> <span class='mesto-status mesto-status-guide'>Всегда занято</span></div>";
-    }
-    if (driverCell) {
-      mestaTableHtml +=
-        "<div class='line-mesto line-mesto-driver'><span class='mesto-n'>Водитель:</span> <span class='mesto-status mesto-status-guide'>Служебное место</span></div>";
+        "<div class='line-mesto line-mesto-guide' data-mesto=" +
+        guideCell.number +
+        "><span class='mesto-n'>Гид:</span> <span class='mesto-status mesto-status-zan'>Занято</span> <button class=bOsv>Освободить</button></div>";
     }
     $("#mestaTable").html(mestaTableHtml);
   }
@@ -193,12 +185,11 @@ $(document).ready(function () {
       }
       var seatNumbers = SeatProfiles.getSeatNumbers(profile);
       var guideCell = SeatProfiles.getGuideCell(profile);
-      var driverCell = SeatProfiles.getDriverCell(profile);
 
       $svg = $(SeatProfiles.generateGenericSVG(profile, {}));
 
       allMestaTxt = seatNumbers.join(",");
-      buildGenericMestaTable(seatNumbers, guideCell, driverCell);
+      buildGenericMestaTable(seatNumbers, guideCell);
     }
 
     $("#imgParent").prepend($svg);
@@ -227,7 +218,7 @@ $(document).ready(function () {
 
   $(document).on(
     "dblclick",
-    ".generic-seat:not(.generic-guide):not(.generic-driver) rect",
+    ".generic-seat:not(.generic-driver) rect",
     function () {
       var mestoN = $(this).closest(".generic-seat").attr("data-seat");
       var lineMesto = $('.line-mesto[data-mesto="' + mestoN + '"]');
