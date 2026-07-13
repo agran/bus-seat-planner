@@ -76,10 +76,24 @@
   stroke-linecap: round;
 }
 
-.door-panel {
-  stroke: #9db4c8;
+.door-leaf {
+  fill: #cfe0ee;
+  stroke: #6f8ea9;
   stroke-width: 2;
-  stroke-dasharray: 5 4;
+}
+
+.door-handle {
+  stroke: #51677a;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.door-slide-arrow {
+  fill: none;
+  stroke: #7c93a6;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .door-text {

@@ -261,7 +261,9 @@ var SeatProfiles = (function () {
     ".bus-tail-light{fill:#d9534f;stroke:none;}" +
     ".door-floor{fill:#fbfdff;stroke:#6f8ea9;stroke-width:2.5;}" +
     ".door-threshold{stroke:#f0b429;stroke-width:6;stroke-linecap:round;}" +
-    ".door-panel{stroke:#9db4c8;stroke-width:2;stroke-dasharray:5 4;}" +
+    ".door-leaf{fill:#cfe0ee;stroke:#6f8ea9;stroke-width:2;}" +
+    ".door-handle{stroke:#51677a;stroke-width:3;stroke-linecap:round;}" +
+    ".door-slide-arrow{fill:none;stroke:#7c93a6;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}" +
     ".door-text{fill:#51677a;font-family:Arial,sans-serif;font-size:12px;font-weight:700;pointer-events:none;}" +
     ".seat-back{stroke:rgba(30,36,26,0.55);stroke-width:1.5;cursor:pointer;pointer-events:fill;}" +
     ".seat-cushion{stroke:rgba(30,36,26,0.55);stroke-width:1.5;cursor:pointer;pointer-events:fill;}" +
@@ -354,6 +356,9 @@ var SeatProfiles = (function () {
     return g;
   }
 
+  // Одностворчатая раздвижная дверь: рама проёма + сдвинутая створка сбоку
+  // (характерно для микроавтобусов/туристических автобусов), с ручкой и
+  // маленькими стрелками, показывающими направление сдвига.
   function buildDoorGroup(x, y, w, h, side, bodyY0, bodyY1) {
     var g = el("g", {
       class: "generic-door generic-door-" + side,
@@ -364,14 +369,16 @@ var SeatProfiles = (function () {
     var floorY = side === "top" ? bodyY0 + 5 : y + h * 0.28;
     var floorBottom = side === "top" ? y + h * 0.72 : bodyY1 - 5;
     var thresholdY = side === "top" ? bodyY0 + 7 : bodyY1 - 7;
+    var doorH = floorBottom - floorY;
 
+    // Проём двери (рама).
     g.appendChild(
       el("rect", {
         class: "door-floor",
         x: doorX,
         y: floorY,
         width: doorWidth,
-        height: floorBottom - floorY,
+        height: doorH,
         rx: 7,
         ry: 7,
       }),
@@ -385,19 +392,62 @@ var SeatProfiles = (function () {
         y2: thresholdY,
       }),
     );
+
+    // Створка сдвинута к одному краю проёма — открытая часть видна рядом.
+    var leafWidth = doorWidth * 0.56;
+    var leafX = doorX + doorWidth - leafWidth - 3;
     g.appendChild(
-      el("line", {
-        class: "door-panel",
-        x1: doorX + doorWidth / 2,
-        y1: floorY + 9,
-        x2: doorX + doorWidth / 2,
-        y2: floorBottom - 9,
+      el("rect", {
+        class: "door-leaf",
+        x: leafX,
+        y: floorY + 4,
+        width: leafWidth,
+        height: doorH - 8,
+        rx: 5,
+        ry: 5,
       }),
     );
+    // Ручка створки — короткая вертикальная перекладина у переднего края.
+    g.appendChild(
+      el("line", {
+        class: "door-handle",
+        x1: leafX + leafWidth * 0.22,
+        y1: floorY + doorH * 0.35,
+        x2: leafX + leafWidth * 0.22,
+        y2: floorY + doorH * 0.65,
+      }),
+    );
+    // Стрелки на открытой части проёма показывают направление сдвига створки.
+    var arrowY = floorY + doorH / 2;
+    [0.28, 0.5].forEach(function (frac) {
+      var ax = doorX + (leafX - doorX) * frac + 6;
+      g.appendChild(
+        el("path", {
+          class: "door-slide-arrow",
+          d:
+            "M " +
+            (ax + 5) +
+            " " +
+            (arrowY - 5) +
+            " L " +
+            (ax - 3) +
+            " " +
+            arrowY +
+            " L " +
+            (ax + 5) +
+            " " +
+            (arrowY + 5),
+        }),
+      );
+    });
+
+    // Подпись держим ближе к салону (подальше от внешнего борта, где рядом
+    // рисуются колёсные выступы) — для верхней и нижней стороны это разные
+    // края дверного проёма.
     var text = el("text", {
       class: "door-text",
       x: doorX + doorWidth / 2,
-      y: (floorY + floorBottom) / 2,
+      y: floorY + doorH * (side === "top" ? 0.86 : 0.14),
       "text-anchor": "middle",
       "dominant-baseline": "central",
     });
@@ -490,8 +540,10 @@ var SeatProfiles = (function () {
       }),
     );
 
-    // Дверь в профиле "выключает" оконную секцию своего борта.
-    var doorSideByColumn = {};
+    // Дверь в профиле "выключает" оконную секцию своего борта. Двери могут
+    // быть с обеих сторон одной колонки одновременно, поэтому храним набор
+    // сторон, а не единственное значение.
+    var doorSidesByColumn = {};
     for (var doorRow = bounds.minRow; doorRow <= bounds.maxRow; doorRow++) {
       for (var doorCol = bounds.minCol; doorCol <= bounds.maxCol; doorCol++) {
         var doorCell = profile.cells[doorRow * profile.cols + doorCol];
@@ -499,8 +551,11 @@ var SeatProfiles = (function () {
           var localDoorCol = doorCol - bounds.minCol;
           var distanceToTop = doorRow - bounds.minRow;
           var distanceToBottom = bounds.maxRow - doorRow;
-          doorSideByColumn[localDoorCol] =
-            distanceToTop <= distanceToBottom ? "top" : "bottom";
+          var side = distanceToTop <= distanceToBottom ? "top" : "bottom";
+          if (!doorSidesByColumn[localDoorCol]) {
+            doorSidesByColumn[localDoorCol] = {};
+          }
+          doorSidesByColumn[localDoorCol][side] = true;
         }
       }
     }
@@ -523,7 +578,7 @@ var SeatProfiles = (function () {
         { y: bodyY0 + 5, side: "top" },
         { y: bodyY1 - 15, side: "bottom" },
       ].forEach(function (windowSide) {
-        if (doorSideByColumn[windowCol] === windowSide.side) {
+        if (doorSidesByColumn[windowCol] && doorSidesByColumn[windowCol][windowSide.side]) {
           return;
         }
         svg.appendChild(
