@@ -73,20 +73,39 @@ $(document).ready(function () {
 
   function buildGenericMestaTable(seatNumbers, guideCell) {
     var mestaTableHtml = "";
-    seatNumbers.forEach(function (n) {
+    var guideNumber = guideCell && guideCell.number != null ? guideCell.number : null;
+
+    // Место гида вставляем в общий порядок по номеру, чтобы список читался
+    // как непрерывная нумерация мест, а не отдельным блоком в конце.
+    var rows = seatNumbers.map(function (n) {
+      return { n: n, isGuide: false };
+    });
+    if (guideNumber != null) {
+      rows.push({ n: guideNumber, isGuide: true });
+      rows.sort(function (a, b) {
+        return a.n - b.n;
+      });
+    }
+
+    rows.forEach(function (row) {
+      var status = row.isGuide ? "zan" : "svob";
+      var statusText = row.isGuide ? "Занято" : "Свободно";
+      var button = row.isGuide
+        ? "<button class=bOsv>Освободить</button>"
+        : "<button class=bZan>Занять</button>";
       mestaTableHtml +=
         "<div class=line-mesto data-mesto=" +
-        n +
+        row.n +
         "><span class='mesto-n'>" +
-        n +
-        ".</span> <span class='mesto-status mesto-status-svob'>Свободно</span> <button class=bZan>Занять</button></div>";
+        row.n +
+        ".</span> <span class='mesto-status mesto-status-" +
+        status +
+        "'>" +
+        statusText +
+        "</span> " +
+        button +
+        "</div>";
     });
-    if (guideCell && guideCell.number != null) {
-      mestaTableHtml +=
-        "<div class='line-mesto line-mesto-guide' data-mesto=" +
-        guideCell.number +
-        "><span class='mesto-n'>Гид:</span> <span class='mesto-status mesto-status-zan'>Занято</span> <button class=bOsv>Освободить</button></div>";
-    }
     $("#mestaTable").html(mestaTableHtml);
   }
 
