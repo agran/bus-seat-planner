@@ -374,17 +374,18 @@ var SeatProfiles = (function () {
     var offsetX = x + (w - seatW) / 2;
     var backW = seatW * 0.22;
 
-    // Спинка кресла — узкая полоса, скруглённая только с внешней (левой)
-    // стороны; прилегающий к сидушке правый край делаем прямым, чтобы
-    // детали стыковались плотно, без видимого зазора между скруглениями.
+    // Спинка кресла — узкая полоса. Левые (внешние) углы скруглены заметнее,
+    // правые (у стыка с сидушкой) — небольшим радиусом, чтобы не выглядело
+    // прямым обрубком, но и не создавало зазора со скруглением сидушки.
     var backR = Math.min(h * 0.14, backW / 2);
+    var backRightR = Math.min(h * 0.05, backW / 2);
     var back = el("path", {
       class: "seat-back " + statusClass,
       d: roundedRectPath(offsetX, y, backW, h, {
         tl: backR,
         bl: backR,
-        tr: 0,
-        br: 0,
+        tr: backRightR,
+        br: backRightR,
       }),
     });
     g.appendChild(back);
