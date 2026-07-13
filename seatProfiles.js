@@ -264,7 +264,7 @@ var SeatProfiles = (function () {
     ".door-leaf{fill:#cfe0ee;stroke:#6f8ea9;stroke-width:2;}" +
     ".door-handle{stroke:#51677a;stroke-width:3;stroke-linecap:round;}" +
     ".door-slide-arrow{fill:none;stroke:#7c93a6;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}" +
-    ".door-text{fill:#51677a;font-family:Arial,sans-serif;font-size:12px;font-weight:700;pointer-events:none;}" +
+    ".door-text{fill:#51677a;font-family:Arial,sans-serif;font-size:12px;font-weight:700;pointer-events:none;stroke:#fff;stroke-width:3px;paint-order:stroke fill;stroke-linejoin:round;}" +
     ".seat-back{stroke:rgba(30,36,26,0.55);stroke-width:1.5;cursor:pointer;pointer-events:fill;}" +
     ".seat-cushion{stroke:rgba(30,36,26,0.55);stroke-width:1.5;cursor:pointer;pointer-events:fill;}" +
     ".seat-back.free,.seat-cushion.free{fill:#8fae55;}" +
