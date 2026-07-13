@@ -291,10 +291,77 @@ var SeatProfiles = (function () {
     return e;
   }
 
+  // Строит "d" для прямоугольника с независимо задаваемым радиусом каждого
+  // угла (обычный <rect rx> скругляет все четыре угла одинаково — этого
+  // недостаточно, когда деталь должна одной стороной ровно примыкать
+  // к соседней, а другими — быть скруглённой).
+  function roundedRectPath(x, y, w, h, r) {
+    var tl = Math.min(r.tl || 0, w / 2, h / 2);
+    var tr = Math.min(r.tr || 0, w / 2, h / 2);
+    var br = Math.min(r.br || 0, w / 2, h / 2);
+    var bl = Math.min(r.bl || 0, w / 2, h / 2);
+    return (
+      "M " +
+      (x + tl) +
+      " " +
+      y +
+      " H " +
+      (x + w - tr) +
+      " A " +
+      tr +
+      " " +
+      tr +
+      " 0 0 1 " +
+      (x + w) +
+      " " +
+      (y + tr) +
+      " V " +
+      (y + h - br) +
+      " A " +
+      br +
+      " " +
+      br +
+      " 0 0 1 " +
+      (x + w - br) +
+      " " +
+      (y + h) +
+      " H " +
+      (x + bl) +
+      " A " +
+      bl +
+      " " +
+      bl +
+      " 0 0 1 " +
+      x +
+      " " +
+      (y + h - bl) +
+      " V " +
+      (y + tl) +
+      " A " +
+      tl +
+      " " +
+      tl +
+      " 0 0 1 " +
+      (x + tl) +
+      " " +
+      y +
+      " Z"
+    );
+  }
+
   // Собирает <g> с сиденьем: спинка — тёмная вертикальная полоса слева,
   // сидушка — закруглённый прямоугольник справа с номером по центру.
   // Автобус едет вправо, поэтому пассажир "смотрит" направо, а спинка кресла — слева.
-  function buildSeatGroup(x, y, w, h, statusClass, label, specialType, subLabel) {
+  function buildSeatGroup(
+    x,
+    y,
+    w,
+    h,
+    statusClass,
+    label,
+    specialType,
+    subLabel,
+  ) {
     var g = el("g", {
       class:
         "generic-seat" +
@@ -307,27 +374,32 @@ var SeatProfiles = (function () {
     var offsetX = x + (w - seatW) / 2;
     var backW = seatW * 0.22;
 
-    // Спинка кресла.
-    var back = el("rect", {
+    // Спинка кресла — узкая полоса, скруглённая только с внешней (левой)
+    // стороны; прилегающий к сидушке правый край делаем прямым, чтобы
+    // детали стыковались плотно, без видимого зазора между скруглениями.
+    var backR = Math.min(h * 0.14, backW / 2);
+    var back = el("path", {
       class: "seat-back " + statusClass,
-      x: offsetX,
-      y: y,
-      width: backW + seatW * 0.1,
-      height: h,
-      rx: h * 0.14,
-      ry: h * 0.14,
+      d: roundedRectPath(offsetX, y, backW, h, {
+        tl: backR,
+        bl: backR,
+        tr: 0,
+        br: 0,
+      }),
     });
     g.appendChild(back);
 
-    // Сидушка (основная часть кресла), слегка перекрывает спинку для целостности формы.
-    var cushion = el("rect", {
+    // Сидушка (основная часть кресла) примыкает вплотную к спинке — общий
+    // прямой край без скругления, скруглены только внешние углы сидушки.
+    var cushionR = h * 0.16;
+    var cushion = el("path", {
       class: "seat-cushion " + statusClass,
-      x: offsetX + backW,
-      y: y + h * 0.05,
-      width: seatW - backW,
-      height: h * 0.9,
-      rx: h * 0.16,
-      ry: h * 0.16,
+      d: roundedRectPath(offsetX + backW, y + h * 0.05, seatW - backW, h * 0.9, {
+        tl: 0,
+        bl: 0,
+        tr: cushionR,
+        br: cushionR,
+      }),
     });
     g.appendChild(cushion);
 
@@ -578,7 +650,10 @@ var SeatProfiles = (function () {
         { y: bodyY0 + 5, side: "top" },
         { y: bodyY1 - 15, side: "bottom" },
       ].forEach(function (windowSide) {
-        if (doorSidesByColumn[windowCol] && doorSidesByColumn[windowCol][windowSide.side]) {
+        if (
+          doorSidesByColumn[windowCol] &&
+          doorSidesByColumn[windowCol][windowSide.side]
+        ) {
           return;
         }
         svg.appendChild(
@@ -795,7 +870,15 @@ var SeatProfiles = (function () {
         }
 
         if (cell.type === "driver") {
-          var dg = buildSeatGroup(x, y, CELL_W, CELL_H, "driver", "Вод.", "driver");
+          var dg = buildSeatGroup(
+            x,
+            y,
+            CELL_W,
+            CELL_H,
+            "driver",
+            "Вод.",
+            "driver",
+          );
           dg.setAttribute("data-driver", "true");
           seatsLayer.appendChild(dg);
           continue;
@@ -804,7 +887,15 @@ var SeatProfiles = (function () {
         if (cell.type === "seat" && cell.number != null) {
           var status =
             initialStatus[cell.number] === "occupied" ? "occupied" : "free";
-          var sg = buildSeatGroup(x, y, CELL_W, CELL_H, status, cell.number, null);
+          var sg = buildSeatGroup(
+            x,
+            y,
+            CELL_W,
+            CELL_H,
+            status,
+            cell.number,
+            null,
+          );
           sg.setAttribute("data-seat", cell.number);
           seatsLayer.appendChild(sg);
         }
@@ -832,8 +923,7 @@ var SeatProfiles = (function () {
     var itemWidths = legendItems.map(function (item) {
       return legendIconW + legendGap + item.label.length * approxCharW;
     });
-    var legendTotalWidth =
-      itemWidths[0] + itemWidths[1] + legendItemGap;
+    var legendTotalWidth = itemWidths[0] + itemWidths[1] + legendItemGap;
     var legendX = (width - legendTotalWidth) / 2;
 
     var legendLayer = el("g", { class: "seat-legend-layer" });
