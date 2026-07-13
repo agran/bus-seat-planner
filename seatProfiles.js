@@ -275,7 +275,7 @@ var SeatProfiles = (function () {
     ".seat-back.guide{fill:#4c5e67;}" +
     ".seat-back.driver,.seat-cushion.driver{fill:#3f6680;cursor:default;}" +
     ".seat-back.driver{fill:#315268;}" +
-    ".seat-text{fill:#f4f7e0;font-size:32px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;}" +
+    ".seat-text{fill:#f4f7e0;font-size:32px;font-weight:700;font-family:Arial,sans-serif;font-variant-numeric:tabular-nums;pointer-events:none;user-select:none;}" +
     ".generic-guide .seat-text{font-size:26px;}" +
     ".generic-driver .seat-text{font-size:18px;}" +
     ".seat-subtext{fill:#dbe4ea;font-size:13px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;}" +
@@ -404,9 +404,12 @@ var SeatProfiles = (function () {
     });
     g.appendChild(cushion);
 
+    // Номер центрируем по всей ширине кресла (спинка + сидушка), а не только
+    // по сидушке — иначе из-за спинки слева цифра визуально уезжает вправо.
+    var textCenterX = offsetX + seatW / 2;
     var text = el("text", {
       class: "seat-text",
-      x: offsetX + backW + (seatW - backW) / 2,
+      x: textCenterX,
       y: subLabel ? y + h * 0.4 : y + h / 2,
       "text-anchor": "middle",
       "dominant-baseline": "central",
@@ -417,7 +420,7 @@ var SeatProfiles = (function () {
     if (subLabel) {
       var sub = el("text", {
         class: "seat-subtext",
-        x: offsetX + backW + (seatW - backW) / 2,
+        x: textCenterX,
         y: y + h * 0.74,
         "text-anchor": "middle",
         "dominant-baseline": "central",

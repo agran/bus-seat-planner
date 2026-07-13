@@ -167,6 +167,8 @@
   font-size: 32px;
   font-weight: 700;
   font-family: Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
   pointer-events: none;
   user-select: none;
 }
