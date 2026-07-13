@@ -13,7 +13,7 @@
     <script src="seatProfiles.js?6"></script>
     <script src="firebase-config.js?1"></script>
     <script type="module" src="cloudSync.js?1"></script>
-    <script src="admin.js?2"></script>
+    <script src="admin.js?3"></script>
 
     <link rel="stylesheet" href="seatProfiles.css?1" />
     <link rel="stylesheet" href="admin.css?1" />
@@ -36,8 +36,9 @@
     <div class="panel" id="cloudAuthPanel">
       <span id="cloudStatus">Облачное хранилище: подключение…</span>
       <span id="cloudLoginForm" style="display: none">
-        <input type="email" id="cloudEmail" placeholder="Email администратора" size="22" />
-        <input type="password" id="cloudPassword" placeholder="Пароль" size="14" />
+        <input type="email" id="cloudEmail" placeholder="Email администратора" size="22" autocomplete="off" />
+        <input type="password" id="cloudPassword" placeholder="Пароль" size="14" autocomplete="off" />
+        <button type="button" id="btnTogglePassword" title="Показать/скрыть пароль">👁</button>
         <button id="btnCloudLogin">Войти</button>
       </span>
       <button id="btnCloudLogout" style="display: none">Выйти</button>

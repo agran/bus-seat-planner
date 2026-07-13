@@ -56,6 +56,13 @@ $(document).ready(function () {
       });
   });
 
+  $("#btnTogglePassword").on("click", function () {
+    var $input = $("#cloudPassword");
+    var showing = $input.attr("type") === "text";
+    $input.attr("type", showing ? "password" : "text");
+    $(this).text(showing ? "👁" : "🙈");
+  });
+
   $("#btnCloudLogout").on("click", function () {
     window.CloudSync.logout();
   });
