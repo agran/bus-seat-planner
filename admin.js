@@ -3,6 +3,63 @@
 $(document).ready(function () {
   var currentProfile = null; // редактируемый профиль (в памяти, ещё не обязательно сохранён)
 
+  function subscribeCloudProfiles() {
+    window.CloudSync.onProfilesChange(function (profiles) {
+      SeatProfiles.replaceProfiles(profiles);
+      refreshProfileList();
+    });
+  }
+
+  function updateCloudStatusUI(user) {
+    var loggedIn = !!user;
+    $("#cloudLoginForm").toggle(!loggedIn);
+    $("#btnCloudLogout").toggle(loggedIn);
+    if (loggedIn) {
+      $("#cloudStatus").text(
+        "Облачное хранилище: вы вошли как " + user.email + ", можно сохранять/удалять.",
+      );
+    } else {
+      $("#cloudStatus").text(
+        "Облачное хранилище: без входа профили видны всем, но сохранять/удалять может только администратор.",
+      );
+    }
+  }
+
+  function initCloudSync() {
+    if (!window.CloudSync) {
+      $("#cloudStatus").text("Облачное хранилище недоступно, работаем только локально.");
+      return;
+    }
+    window.CloudSync.onAuthChange(updateCloudStatusUI);
+    if (window.CloudSync.isAvailable()) {
+      subscribeCloudProfiles();
+    } else {
+      window.addEventListener("cloudsync-ready", subscribeCloudProfiles);
+      $("#cloudStatus").text("Облачное хранилище: подключение…");
+    }
+  }
+
+  $("#btnCloudLogin").on("click", function () {
+    var email = $("#cloudEmail").val().trim();
+    var password = $("#cloudPassword").val();
+    if (!email || !password) {
+      showStatus("Введите email и пароль администратора.", "error");
+      return;
+    }
+    window.CloudSync.login(email, password)
+      .then(function () {
+        $("#cloudPassword").val("");
+        showStatus("Вход выполнен.", "ok");
+      })
+      .catch(function (err) {
+        showStatus("Ошибка входа: " + err.message, "error");
+      });
+  });
+
+  $("#btnCloudLogout").on("click", function () {
+    window.CloudSync.logout();
+  });
+
   function blankCell() {
     return { type: "empty", number: null };
   }
@@ -318,10 +375,22 @@ $(document).ready(function () {
     if (!confirm('Удалить профиль "' + currentProfile.name + '"?')) {
       return;
     }
-    SeatProfiles.deleteProfile(currentProfile.id);
-    loadProfileIntoEditor(makeEmptyProfile(5, 7));
-    refreshProfileList();
-    showStatus("Профиль удалён.", "ok");
+    if (window.CloudSync && window.CloudSync.isLoggedIn()) {
+      window.CloudSync.deleteProfile(currentProfile.id)
+        .then(function () {
+          loadProfileIntoEditor(makeEmptyProfile(5, 7));
+          refreshProfileList();
+          showStatus("Профиль удалён из облака.", "ok");
+        })
+        .catch(function (err) {
+          showStatus("Ошибка удаления: " + err.message, "error");
+        });
+    } else {
+      SeatProfiles.deleteProfile(currentProfile.id);
+      loadProfileIntoEditor(makeEmptyProfile(5, 7));
+      refreshProfileList();
+      showStatus("Профиль удалён локально.", "ok");
+    }
   });
 
   $("#profileList").on("change", function () {
@@ -349,10 +418,25 @@ $(document).ready(function () {
       return;
     }
 
-    var saved = SeatProfiles.saveProfile(currentProfile);
-    currentProfile = saved;
-    refreshProfileList();
-    showStatus("Профиль сохранён.", "ok");
+    if (window.CloudSync && window.CloudSync.isLoggedIn()) {
+      window.CloudSync.saveProfile(currentProfile)
+        .then(function (saved) {
+          currentProfile = saved;
+          refreshProfileList();
+          showStatus("Профиль сохранён в облако.", "ok");
+        })
+        .catch(function (err) {
+          showStatus("Ошибка сохранения в облако: " + err.message, "error");
+        });
+    } else {
+      var saved = SeatProfiles.saveProfile(currentProfile);
+      currentProfile = saved;
+      refreshProfileList();
+      showStatus(
+        "Профиль сохранён локально (войдите в облако, чтобы поделиться им со всеми).",
+        "ok",
+      );
+    }
   });
 
   $("#btnExport").on("click", function () {
@@ -381,4 +465,5 @@ $(document).ready(function () {
     loadProfileIntoEditor(makeEmptyProfile(5, 7));
   }
   refreshProfileList();
+  initCloudSync();
 });

@@ -121,6 +121,15 @@ var SeatProfiles = (function () {
     saveStore(store);
   }
 
+  // Полностью заменяет локальный кэш профилей списком, полученным из
+  // облака (Firestore), не трогая выбранный профиль (он хранится только
+  // в настройках браузера, per-device).
+  function replaceProfiles(profiles) {
+    var store = loadStore();
+    store.profiles = profiles || [];
+    saveStore(store);
+  }
+
   function getSelectedProfileId() {
     var store = loadStore();
     return store.selectedId || CLASSIC_PROFILE_ID;
@@ -892,6 +901,7 @@ var SeatProfiles = (function () {
     getProfile: getProfile,
     saveProfile: saveProfile,
     deleteProfile: deleteProfile,
+    replaceProfiles: replaceProfiles,
     getSelectedProfileId: getSelectedProfileId,
     setSelectedProfileId: setSelectedProfileId,
     getSeatNumbers: getSeatNumbers,

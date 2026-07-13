@@ -21,6 +21,35 @@ $(document).ready(function () {
     SeatProfiles.getProfiles().forEach(function (p) {
       $sel.append($("<option>").val(p.id).text(p.name));
     });
+    $sel.val(SeatProfiles.getSelectedProfileId());
+  }
+
+  function subscribeCloudProfiles() {
+    window.CloudSync.onProfilesChange(function (profiles) {
+      SeatProfiles.replaceProfiles(profiles);
+      var selectedId = SeatProfiles.getSelectedProfileId();
+      populateProfileSelect();
+      // Перерисовываем текущий профиль, если он обновился в облаке
+      // (например, кто-то поменял схему в admin.html на другом устройстве).
+      if (!isClassicProfile && selectedId !== SeatProfiles.CLASSIC_PROFILE_ID) {
+        var currentHash =
+          window.location.hash !== ""
+            ? window.location.hash.substring(1)
+            : null;
+        loadAndRenderProfile(selectedId, currentHash);
+      }
+    });
+  }
+
+  function initCloudSync() {
+    if (!window.CloudSync) {
+      return;
+    }
+    if (window.CloudSync.isAvailable()) {
+      subscribeCloudProfiles();
+    } else {
+      window.addEventListener("cloudsync-ready", subscribeCloudProfiles);
+    }
   }
 
   function buildClassicMestaTable() {
@@ -207,6 +236,7 @@ $(document).ready(function () {
   );
 
   populateProfileSelect();
+  initCloudSync();
 
   $(document).on("click", ".bZan", function () {
     var lineMesto = $(this).parent();

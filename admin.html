@@ -11,7 +11,9 @@
 
     <script src="jquery-3.7.1.min.js"></script>
     <script src="seatProfiles.js?6"></script>
-    <script src="admin.js?1"></script>
+    <script src="firebase-config.js?1"></script>
+    <script type="module" src="cloudSync.js?1"></script>
+    <script src="admin.js?2"></script>
 
     <link rel="stylesheet" href="seatProfiles.css?1" />
     <link rel="stylesheet" href="admin.css?1" />
@@ -30,6 +32,16 @@
       край сетки — перед автобуса (там будет руль и кресло водителя на
       картинке), левый край — корма.
     </p>
+
+    <div class="panel" id="cloudAuthPanel">
+      <span id="cloudStatus">Облачное хранилище: подключение…</span>
+      <span id="cloudLoginForm" style="display: none">
+        <input type="email" id="cloudEmail" placeholder="Email администратора" size="22" />
+        <input type="password" id="cloudPassword" placeholder="Пароль" size="14" />
+        <button id="btnCloudLogin">Войти</button>
+      </span>
+      <button id="btnCloudLogout" style="display: none">Выйти</button>
+    </div>
 
     <div class="panel">
       <label
