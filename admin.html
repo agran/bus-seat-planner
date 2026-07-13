@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Редактор профилей мест в автобусе</title>
+
+    <meta
+      name="viewport"
+      content="minimum-scale=0, user-scalable=yes, width=device-width, height=device-height, viewport-fit=cover"
+    />
+    <meta charset="UTF-8" />
+
+    <script src="jquery-3.7.1.min.js"></script>
+    <script src="seatProfiles.js?6"></script>
+    <script src="admin.js?1"></script>
+
+    <link rel="stylesheet" href="seatProfiles.css?1" />
+    <link rel="stylesheet" href="admin.css?1" />
+  </head>
+  <body>
+    <h2>Редактор профилей расположения мест</h2>
+    <p>
+      Здесь можно нарисовать произвольную схему мест в автобусе: указать размер
+      сетки, отметить клетки как места (с номером) или как место для гида
+      (всегда занято, не участвует в выборе мест), и сохранить получившийся
+      профиль. Сохранённые профили появятся на
+      <a href="avtobusJZ.html">главной странице</a> в выпадающем списке.
+      <br />
+      <b>Важно:</b>
+      в сетке колонки — это длина автобуса, а строки — ширина салона. Правый
+      край сетки — перед автобуса (там будет руль и кресло водителя на
+      картинке), левый край — корма.
+    </p>
+
+    <div class="panel">
+      <label
+        >Список сохранённых профилей:
+        <select id="profileList"></select>
+      </label>
+      <button id="btnNewProfile">Новый профиль</button>
+      <button id="btnDuplicateProfile">Дублировать</button>
+      <button id="btnDeleteProfile" class="danger">Удалить</button>
+    </div>
+
+    <div class="panel">
+      <label
+        >Название профиля:
+        <input
+          type="text"
+          id="profileName"
+          size="30"
+          placeholder="Например: Микроавтобус 16 мест"
+      /></label>
+    </div>
+
+    <div class="panel">
+      <label
+        >Строк: <input type="number" id="rowsInput" min="1" max="12" value="5"
+      /></label>
+      <label
+        >Столбцов:
+        <input type="number" id="colsInput" min="1" max="10" value="7"
+      /></label>
+      <button id="btnResize">Изменить размер сетки</button>
+      <label
+        >Задние колёса:
+        <select id="rearWheelsSelect"></select>
+      </label>
+    </div>
+
+    <div class="panel">
+      Клик по клетке переключает:
+      <b>пусто → место → место гида → дверь → место водителя → пусто</b>. У
+      места можно вручную изменить номер в поле ввода (кнопка ✎). В профиле
+      может быть только одно место водителя.
+      <br />
+      <label
+        >Порядок автонумерации:
+        <select id="numberingOrder">
+          <option value="row-lr">
+            по рядам, слева направо (от кормы к носу)
+          </option>
+          <option value="row-rl">
+            по рядам, справа налево (от носа к корме)
+          </option>
+          <option value="col-lr-tb">
+            по колонкам, от кормы к носу, внутри колонки сверху вниз
+          </option>
+          <option value="col-lr-bt">
+            по колонкам, от кормы к носу, внутри колонки снизу вверх
+          </option>
+          <option value="col-rl-tb" selected>
+            по колонкам, от носа к корме, внутри колонки сверху вниз
+          </option>
+          <option value="col-rl-bt">
+            по колонкам, от носа к корме, внутри колонки снизу вверх
+          </option>
+          <option value="snake-rows">змейкой по рядам</option>
+          <option value="snake-cols">змейкой по колонкам</option>
+        </select>
+      </label>
+      <button id="btnAutoNumber">Автонумерация</button>
+    </div>
+
+    <div id="gridDesigner"></div>
+
+    <div class="panel">
+      <button id="btnSaveProfile" class="primary">Сохранить профиль</button>
+      <span id="saveStatus"></span>
+    </div>
+
+    <h3>Предпросмотр схемы</h3>
+    <div id="previewParent"></div>
+
+    <h3>Импорт / экспорт профиля (JSON)</h3>
+    <p>
+      Можно скопировать текст, чтобы перенести профиль в другой браузер, или
+      вставить ранее скопированный.
+    </p>
+    <textarea
+      id="jsonArea"
+      rows="8"
+      style="width: 100%; max-width: 50em"
+    ></textarea>
+    <br />
+    <button id="btnExport">Выгрузить текущий профиль в поле выше</button>
+    <button id="btnImport">Загрузить профиль из поля выше</button>
+
+    <br /><br />
+    <a href="avtobusJZ.html">← Вернуться на главную страницу</a>
+  </body>
+</html>

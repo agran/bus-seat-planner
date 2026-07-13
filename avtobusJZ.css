@@ -1,114 +1,126 @@
 img {
-	height: auto;
-	width: 100%;
-	margin: 0.0em;
-	margin-top: 0.0em;
-	max-width: 40em;
-	user-select: none;
+  height: auto;
+  width: 100%;
+  margin: 0em;
+  margin-top: 0em;
+  max-width: 40em;
+  user-select: none;
 }
 
-#imgParent > svg{
-	height: auto;
-	width: 100%;
-	margin: 0.0em;
-	margin-top: 0.0em;
-	max-width: 40em;
-    position: absolute;
-    left: 0.5em;
-	/* visibility: hidden; */
-    pointer-events: none;
+#imgParent > svg {
+  height: auto;
+  width: 100%;
+  margin: 0em;
+  margin-top: 0em;
+  max-width: 40em;
+  position: absolute;
+  left: 0.5em;
+  /* visibility: hidden; */
+  pointer-events: none;
 }
 
-#mestaTable{
-	margin-top: 0.5em;
+#mestaTable {
+  margin-top: 0.5em;
 }
 
 #imgParent {
-	user-select: none;
+  user-select: none;
 }
 
 .bOsv {
-	color: green;
-	width: 7em;
+  color: green;
+  width: 7em;
 }
 
 .bZan {
-	color: red;
-	width: 7em;
+  color: red;
+  width: 7em;
 }
-.copy{
-    width: 7em;
-	vertical-align: top;
+.copy {
+  width: 7em;
+  vertical-align: top;
 }
-.save{
-    width: 7em;
-	vertical-align: top;
+.save {
+  width: 7em;
+  vertical-align: top;
 }
-.copyClose{
-    width: 7em;
-	vertical-align: top;
-	color: red;
+.copyClose {
+  width: 7em;
+  vertical-align: top;
+  color: red;
 }
 
 .mesto-n {
-	display: inline-block;
-	width: 1.5em;
-	font-weight:700;
+  display: inline-block;
+  width: 1.5em;
+  font-weight: 700;
 }
 
-.mesto-status{
-	display: inline-block;
-	width: 5em;
-	font-weight:700;
+.mesto-status {
+  display: inline-block;
+  width: 5em;
+  font-weight: 700;
 }
 
-.mesto-status-svob{
-	color: green;
+.mesto-status-svob {
+  color: green;
 }
-.mesto-status-zan{
-	color: red;
+.mesto-status-zan {
+  color: red;
+}
+.mesto-status-guide {
+  color: #5f7480;
+}
+.line-mesto-guide {
+  font-style: italic;
+}
+
+#profileSelect {
+  max-width: 24em;
+}
+
+.profileBar {
+  margin-bottom: 0.5em;
 }
 
 .line-mesto {
-	margin-top: 0.15em;
-	margin-bottom: 0.15em;
-	
+  margin-top: 0.15em;
+  margin-bottom: 0.15em;
 }
-.clickedSVG{
-	pointer-events: fill; 
+.clickedSVG {
+  pointer-events: fill;
 }
 
 #mestaSvobodnInput {
-	margin-bottom: 0.333em;	
-	background-color: #79ff79;
+  margin-bottom: 0.333em;
+  background-color: #79ff79;
 }
 
 #mestaZanyatyInput {
-	margin-bottom: 0.333em;	
-	background-color: #ffa5a5;
+  margin-bottom: 0.333em;
+  background-color: #ffa5a5;
 }
 
-.mestLabel{
-	width: 10em;
-	display: inline-block;
-	text-align: right;
+.mestLabel {
+  width: 10em;
+  display: inline-block;
+  text-align: right;
 }
 
 .mestButton {
-	margin-left: 0.25em;
-	margin-top: 0.333em;	
+  margin-left: 0.25em;
+  margin-top: 0.333em;
 }
 
-.pastMesta, .copyMesta {
-	margin-left: 0.25em;
+.pastMesta,
+.copyMesta {
+  margin-left: 0.25em;
 }
 
 .parentInput {
-	
 }
 
 .pasted {
-	border-color: red;
-	border-width: 0.25em;
-
+  border-color: red;
+  border-width: 0.25em;
 }

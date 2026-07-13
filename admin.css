@@ -1,0 +1,126 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 1em;
+}
+
+.panel {
+  margin: 0.75em 0;
+}
+
+.panel label {
+  margin-right: 1em;
+}
+
+#gridDesigner {
+  display: inline-block;
+  border: 1px solid #ccc;
+  padding: 0.5em;
+  background: #eef1f7;
+}
+
+.grid-row {
+  display: flex;
+}
+
+.grid-cell {
+  width: 4.5em;
+  height: 4.5em;
+  margin: 0.15em;
+  border: 2px solid #999;
+  border-radius: 0.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #fff;
+  font-weight: 700;
+  position: relative;
+  user-select: none;
+}
+
+.grid-cell.empty {
+  background: repeating-linear-gradient(
+    45deg,
+    #f4f4f4,
+    #f4f4f4 5px,
+    #e8e8e8 5px,
+    #e8e8e8 10px
+  );
+  color: #bbb;
+}
+
+.grid-cell.seat {
+  background: #8fae55;
+  color: #f4f7e0;
+}
+
+.grid-cell.guide {
+  background: #5f7480;
+  color: #fff;
+}
+
+.grid-cell.driver {
+  background: #3f6680;
+  color: #fff;
+}
+
+.grid-cell.door {
+  background: #d9c59b;
+  color: #493f2c;
+}
+
+.grid-cell input {
+  width: 2.2em;
+  text-align: center;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
+.cell-number {
+  font-size: 1.2em;
+  pointer-events: none;
+}
+
+.cell-edit {
+  position: absolute;
+  right: 0.1em;
+  bottom: 0.1em;
+  width: 1.4em;
+  height: 1.4em;
+  line-height: 1;
+  padding: 0;
+  font-size: 0.8em;
+  border-radius: 0.3em;
+  border: 1px solid rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.6);
+  cursor: pointer;
+}
+
+#previewParent svg {
+  max-width: 45em;
+  width: 100%;
+  height: auto;
+}
+
+.danger {
+  color: #a33a34;
+}
+
+.primary {
+  font-weight: 700;
+}
+
+#saveStatus {
+  margin-left: 0.5em;
+  font-weight: 700;
+}
+
+#saveStatus.ok {
+  color: green;
+}
+
+#saveStatus.error {
+  color: #a33a34;
+}
