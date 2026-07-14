@@ -753,8 +753,8 @@ var SeatProfiles = (function () {
     var wheelsLayer = el("g", { class: "wheels-layer" });
     [rearAxleX, frontAxleX].forEach(function (wheelX) {
       [
-        { y: bodyY0 - 14, sidewallY: bodyY0 - 10 },
-        { y: bodyY1 - 10, sidewallY: bodyY1 + 3 },
+        { y: bodyY0 - 14, sidewallY: bodyY0 - 8 },
+        { y: bodyY1 - 10, sidewallY: bodyY1 + 1 },
       ].forEach(function (wheelPos) {
         wheelsLayer.appendChild(
           el("rect", {
