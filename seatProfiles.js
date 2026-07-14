@@ -1030,14 +1030,16 @@ var SeatProfiles = (function () {
   }
 
   // Установить визуальный статус места на generic SVG (jQuery-обёртка $svg).
+  // Спинка/сидушка рисуются как <path> (со скруглёнными углами), поэтому
+  // селектор не привязан к тегу — только к data-seat и классам элементов.
   function setGenericSeatStatus($svg, seatNumber, isFree) {
     var $rects = $svg.find(
       '[data-seat="' +
         seatNumber +
-        '"] rect.seat-back, ' +
+        '"] .seat-back, ' +
         '[data-seat="' +
         seatNumber +
-        '"] rect.seat-cushion',
+        '"] .seat-cushion',
     );
     $rects.removeClass("free occupied").addClass(isFree ? "free" : "occupied");
   }
