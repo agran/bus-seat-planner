@@ -10,7 +10,7 @@
  *   id: string,
  *   name: string,
  *   profileId: string | null, // id профиля автобуса (SeatProfiles) или null — тогда используется классический профиль
- *   seats: { [seatNumber: string]: { occupied: boolean, name: string } }
+ *   seats: { [seatNumber: string]: { occupied: boolean, name: string, comment: string } }
  * }
  *
  * Все данные хранятся только в браузере (localStorage), никуда не отправляются.
@@ -163,9 +163,9 @@ var TripStorage = (function () {
     saveStore(store);
   }
 
-  // Возвращает { occupied, name } для места в поездке, если для него
-  // явно сохранялось состояние, иначе null (значит — используем то, что
-  // задано в самой схеме автобуса по умолчанию: например, место гида
+  // Возвращает { occupied, name, comment } для места в поездке, если для
+  // него явно сохранялось состояние, иначе null (значит — используем то,
+  // что задано в самой схеме автобуса по умолчанию: например, место гида
   // изначально занято, а обычные места изначально свободны).
   function getSeatData(tripId, seatNumber) {
     var trip = getTrip(tripId);
@@ -174,6 +174,7 @@ var TripStorage = (function () {
       return {
         occupied: !!trip.seats[key].occupied,
         name: trip.seats[key].name || "",
+        comment: trip.seats[key].comment || "",
       };
     }
     return null;
@@ -182,7 +183,7 @@ var TripStorage = (function () {
   // Всегда сохраняет явную запись (даже "свободно, без имени"), чтобы
   // при следующей загрузке место не откатилось к умолчанию из схемы
   // (актуально для мест, которые по умолчанию отмечены занятыми).
-  function setSeatData(tripId, seatNumber, occupied, name) {
+  function setSeatData(tripId, seatNumber, occupied, name, comment) {
     var store = loadStore();
     var trip = store.trips.filter(function (t) {
       return t.id === tripId;
@@ -191,7 +192,11 @@ var TripStorage = (function () {
       return;
     }
     var key = String(seatNumber);
-    trip.seats[key] = { occupied: !!occupied, name: name || "" };
+    trip.seats[key] = {
+      occupied: !!occupied,
+      name: name || "",
+      comment: comment || "",
+    };
     saveStore(store);
   }
 
@@ -214,6 +219,20 @@ var TripStorage = (function () {
     }
   }
 
+  // Полностью заменяет карту мест поездки — нужно для отмены действия
+  // (undo): восстанавливает точный снимок состояния на момент до изменения,
+  // а не только точечно перезаписывает отдельные места.
+  function setTripSeats(tripId, seats) {
+    var store = loadStore();
+    var trip = store.trips.filter(function (t) {
+      return t.id === tripId;
+    })[0];
+    if (trip) {
+      trip.seats = seats || {};
+      saveStore(store);
+    }
+  }
+
   return {
     getTrips: getTrips,
     getTrip: getTrip,
@@ -227,5 +246,6 @@ var TripStorage = (function () {
     setSeatData: setSeatData,
     getTripProfileId: getTripProfileId,
     setTripProfileId: setTripProfileId,
+    setTripSeats: setTripSeats,
   };
 })();

@@ -125,6 +125,19 @@ img {
   color: #999;
   border-color: #ddd;
 }
+
+.mestoComment {
+  margin-left: 0.5em;
+  width: 16em;
+  max-width: 60vw;
+  font-style: italic;
+}
+
+.mestoComment:disabled {
+  background-color: #eee;
+  color: #999;
+  border-color: #ddd;
+}
 .clickedSVG {
   pointer-events: fill;
 }

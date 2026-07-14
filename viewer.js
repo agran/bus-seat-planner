@@ -3,6 +3,8 @@ var allMestaTxt = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20";
 var isClassicProfile = true;
 var currentProfileId; // id профиля автобуса, отображаемого сейчас
 var update; // определяется внутри document.ready
+var undoStack = []; // снимки seats поездки перед последними изменениями
+var UNDO_STACK_LIMIT = 30;
 
 $(document).ready(function () {
   console.log("ready!");
@@ -70,9 +72,10 @@ $(document).ready(function () {
     $line.append($btn);
     $line.append(" ");
 
-    // ФИО пассажира — активно только для занятых мест, чтобы не заполнять
-    // имена там, где ещё никто не сидит. Место гида по умолчанию занято
-    // гидом, поэтому сразу подставляем "Гид" вместо пустого поля.
+    // ФИО пассажира и комментарий — активны только для занятых мест, чтобы
+    // не заполнять данные там, где ещё никто не сидит. Место гида по
+    // умолчанию занято гидом, поэтому сразу подставляем "Гид" вместо
+    // пустого поля.
     var $fio = $("<input type='text' class='mestoFio'>")
       .attr("placeholder", "ФИО пассажира")
       .prop("disabled", isFree);
@@ -80,6 +83,11 @@ $(document).ready(function () {
       $fio.val("Гид");
     }
     $line.append($fio);
+
+    var $comment = $("<input type='text' class='mestoComment'>")
+      .attr("placeholder", "Комментарий")
+      .prop("disabled", isFree);
+    $line.append($comment);
 
     return $line;
   }
@@ -122,13 +130,20 @@ $(document).ready(function () {
   function resetLineMestoToDefault(lineMesto) {
     var isFree = lineMesto.attr("data-default-free") !== "false";
     var isGuide = lineMesto.attr("data-guide") === "true";
-    setLineMestoState(lineMesto, isFree, isFree ? "" : isGuide ? "Гид" : "");
+    setLineMestoState(
+      lineMesto,
+      isFree,
+      isFree ? "" : isGuide ? "Гид" : "",
+      "",
+    );
   }
 
   // Единая точка изменения визуального состояния строки места: статус,
-  // кнопка и поле ФИО (активность + значение) всегда меняются вместе.
-  function setLineMestoState(lineMesto, isFree, name) {
+  // кнопка и поля ФИО/комментария (активность + значение) всегда меняются
+  // вместе.
+  function setLineMestoState(lineMesto, isFree, name, comment) {
     var fioInput = lineMesto.find(".mestoFio");
+    var commentInput = lineMesto.find(".mestoComment");
     if (isFree) {
       lineMesto
         .find(".mesto-status")
@@ -141,6 +156,7 @@ $(document).ready(function () {
         .addClass("bZan")
         .html("Занять");
       fioInput.val("").prop("disabled", true);
+      commentInput.val("").prop("disabled", true);
     } else {
       lineMesto
         .find(".mesto-status")
@@ -156,12 +172,16 @@ $(document).ready(function () {
       if (name !== undefined && name !== null) {
         fioInput.val(name);
       }
+      commentInput.prop("disabled", false);
+      if (comment !== undefined && comment !== null) {
+        commentInput.val(comment);
+      }
     }
   }
 
   // Накладывает на построенную таблицу мест данные текущей поездки:
   // сначала сбрасывает всё к дефолту схемы автобуса, затем применяет то,
-  // что явно сохранено для этой поездки (занятость + ФИО).
+  // что явно сохранено для этой поездки (занятость + ФИО + комментарий).
   function applyTripToTable() {
     var tripId = TripStorage.getSelectedTripId();
     $(".line-mesto[data-mesto]").each(function () {
@@ -170,7 +190,7 @@ $(document).ready(function () {
       var mestoN = lineMesto.attr("data-mesto");
       var data = TripStorage.getSeatData(tripId, mestoN);
       if (data) {
-        setLineMestoState(lineMesto, !data.occupied, data.name);
+        setLineMestoState(lineMesto, !data.occupied, data.name, data.comment);
       }
     });
   }
@@ -211,13 +231,14 @@ $(document).ready(function () {
       var mestoN = $(this).attr("data-mesto");
       var isFree = $(this).find(".mesto-status").hasClass("mesto-status-svob");
       var fioName = $(this).find(".mestoFio").val() || "";
+      var comment = $(this).find(".mestoComment").val() || "";
       if (isFree) {
         mestaTxt += mestoN + ",";
       } else {
         mestaZanTxt += mestoN + ",";
       }
       setSeatVisual(mestoN, isFree);
-      TripStorage.setSeatData(tripId, mestoN, !isFree, fioName);
+      TripStorage.setSeatData(tripId, mestoN, !isFree, fioName, comment);
     });
 
     if (mestaTxt.length > 0 && mestaTxt[mestaTxt.length - 1] === ",") {
@@ -299,6 +320,7 @@ $(document).ready(function () {
 
     $("#mestaSvobodnInput").val(allMestaTxt);
     update();
+    updateUndoButtonState();
   }
 
   $(document).on("change", "#profileSelect", function () {
@@ -317,11 +339,55 @@ $(document).ready(function () {
     },
   );
 
+  // --- Отмена последнего действия (undo) ---
+  // Храним снимки карты мест (seats) текущей поездки перед изменениями —
+  // только в памяти (на время сессии страницы), без сохранения в
+  // localStorage: это защита от "случайно нажал не то", а не полноценная
+  // история версий.
+  function pushUndoSnapshot() {
+    var tripId = TripStorage.getSelectedTripId();
+    var trip = TripStorage.getTrip(tripId);
+    if (!trip) {
+      return;
+    }
+    undoStack.push({
+      tripId: tripId,
+      seats: JSON.parse(JSON.stringify(trip.seats || {})),
+    });
+    if (undoStack.length > UNDO_STACK_LIMIT) {
+      undoStack.shift();
+    }
+    updateUndoButtonState();
+  }
+
+  function updateUndoButtonState() {
+    var tripId = TripStorage.getSelectedTripId();
+    var hasUndo = undoStack.some(function (s) {
+      return s.tripId === tripId;
+    });
+    $("#btnUndo").prop("disabled", !hasUndo);
+  }
+
+  $(document).on("click", "#btnUndo", function () {
+    var tripId = TripStorage.getSelectedTripId();
+    for (var i = undoStack.length - 1; i >= 0; i--) {
+      if (undoStack[i].tripId === tripId) {
+        var snapshot = undoStack.splice(i, 1)[0];
+        TripStorage.setTripSeats(tripId, snapshot.seats);
+        applyTripToTable();
+        update();
+        break;
+      }
+    }
+    updateUndoButtonState();
+  });
+
   populateProfileSelect();
   populateTripSelect();
   initCloudSync();
 
   $(document).on("click", ".bZan", function () {
+    pushUndoSnapshot();
     var lineMesto = $(this).closest(".line-mesto");
     setLineMestoState(lineMesto, false);
     update();
@@ -329,15 +395,29 @@ $(document).ready(function () {
   });
 
   $(document).on("click", ".bOsv", function () {
+    pushUndoSnapshot();
     var lineMesto = $(this).closest(".line-mesto");
     setLineMestoState(lineMesto, true);
     update();
   });
 
-  // Ввод ФИО сохраняем сразу же в данные текущей поездки, без ожидания
-  // клика по кнопке "Обновить" — но без полного update(), чтобы не
-  // перерисовывать SVG/PNG на каждое нажатие клавиши.
-  $(document).on("input", ".mestoFio", function () {
+  // Перед началом редактирования ФИО/комментария (первый фокус в поле)
+  // делаем один снимок для undo — так отмена откатывает всю правку целиком,
+  // а не по одной букве.
+  $(document).on("focusin", ".mestoFio, .mestoComment", function () {
+    if (!$(this).data("undoSnapshotTaken")) {
+      pushUndoSnapshot();
+      $(this).data("undoSnapshotTaken", true);
+    }
+  });
+  $(document).on("focusout", ".mestoFio, .mestoComment", function () {
+    $(this).data("undoSnapshotTaken", false);
+  });
+
+  // Ввод ФИО/комментария сохраняем сразу же в данные текущей поездки, без
+  // ожидания клика по кнопке "Обновить" — но без полного update(), чтобы
+  // не перерисовывать SVG/PNG на каждое нажатие клавиши.
+  $(document).on("input", ".mestoFio, .mestoComment", function () {
     var lineMesto = $(this).closest(".line-mesto");
     var mestoN = lineMesto.attr("data-mesto");
     var isFree = lineMesto
@@ -347,7 +427,8 @@ $(document).ready(function () {
       TripStorage.getSelectedTripId(),
       mestoN,
       !isFree,
-      $(this).val(),
+      lineMesto.find(".mestoFio").val(),
+      lineMesto.find(".mestoComment").val(),
     );
   });
 
@@ -543,6 +624,7 @@ $(document).ready(function () {
         seatNumber,
         !!seat.occupied,
         seat.name || "",
+        seat.comment || "",
       );
     });
 
@@ -560,8 +642,8 @@ $(document).ready(function () {
     lineMesto.find("button").click();
   });
 
-  // Собирает занятые места с ФИО (по номеру места, по возрастанию) — нужно
-  // для подписи списком под картинкой при экспорте.
+  // Собирает занятые места с ФИО и комментарием (по номеру места, по
+  // возрастанию) — нужно для подписи списком под картинкой при экспорте.
   function collectOccupiedSeatsWithFio() {
     var list = [];
     $(".line-mesto[data-mesto]").each(function () {
@@ -574,7 +656,8 @@ $(document).ready(function () {
       }
       var mestoN = lineMesto.attr("data-mesto");
       var name = (lineMesto.find(".mestoFio").val() || "").trim();
-      list.push({ n: mestoN, name: name });
+      var comment = (lineMesto.find(".mestoComment").val() || "").trim();
+      list.push({ n: mestoN, name: name, comment: comment });
     });
     list.sort(function (a, b) {
       return Number(a.n) - Number(b.n);
@@ -629,6 +712,9 @@ $(document).ready(function () {
       var y = baseHeight + padding + row * lineHeight;
       var label =
         "Место " + seat.n + ": " + (seat.name || "(ФИО не указано)");
+      if (seat.comment) {
+        label += " — " + seat.comment;
+      }
       ctx.fillText(label, x, y, maxColumnWidth - padding);
     });
 
@@ -687,6 +773,7 @@ $(document).ready(function () {
   });
 
   $(document).on("change", "#mestaSvobodnInput", function () {
+    pushUndoSnapshot();
     $(".line-mesto[data-mesto]").each(function () {
       setLineMestoState($(this), false);
     });
