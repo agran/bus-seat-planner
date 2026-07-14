@@ -771,16 +771,42 @@ $(document).ready(function () {
   // ещё раз, а не даём необработанное исключение улетать в консоль.
   // Возвращает promise, который резолвится в true при успехе и в false
   // при неудаче (после показа сообщения пользователю).
-  function copyCanvasToClipboard(canvas) {
+  //
+  // startedAt (опционально) — performance.now() в момент клика по кнопке:
+  // используется только для замера/лога общего времени операции в консоли
+  // (открой DevTools → Console перед кликом, чтобы увидеть разбивку по
+  // этапам: отрисовка канваса, toBlob, запись в буфер).
+  function copyCanvasToClipboard(canvas, startedAt) {
+    var canvasReadyAt = performance.now();
     return new Promise(function (resolve, reject) {
       canvas.toBlob(function (blob) {
+        var blobReadyAt = performance.now();
         window.focus();
         navigator.clipboard
           .write([new ClipboardItem({ "image/png": blob })])
-          .then(resolve, reject);
+          .then(
+            function () {
+              resolve({ blobReadyAt: blobReadyAt });
+            },
+            reject,
+          );
       }, "image/png");
     }).then(
-      function () {
+      function (timing) {
+        if (startedAt != null) {
+          var writeDoneAt = performance.now();
+          console.log(
+            "[Копировать картинку] отрисовка канваса: " +
+              (canvasReadyAt - startedAt).toFixed(0) +
+              " мс; canvas→blob: " +
+              (timing.blobReadyAt - canvasReadyAt).toFixed(0) +
+              " мс; запись в буфер: " +
+              (writeDoneAt - timing.blobReadyAt).toFixed(0) +
+              " мс; всего: " +
+              (writeDoneAt - startedAt).toFixed(0) +
+              " мс",
+          );
+        }
         return true;
       },
       function (err) {
@@ -794,13 +820,15 @@ $(document).ready(function () {
   }
 
   $(document).on("click", ".copy", function (e) {
+    var startedAt = performance.now();
     buildExportCanvas().then(function (canvas) {
-      copyCanvasToClipboard(canvas);
+      copyCanvasToClipboard(canvas, startedAt);
     });
   });
   $(document).on("click", ".copyClose", function (e) {
+    var startedAt = performance.now();
     buildExportCanvas().then(function (canvas) {
-      copyCanvasToClipboard(canvas).then(function (success) {
+      copyCanvasToClipboard(canvas, startedAt).then(function (success) {
         if (!success) {
           return;
         }
