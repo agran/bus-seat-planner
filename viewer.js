@@ -648,9 +648,10 @@ $(document).ready(function () {
   });
 
   // Собирает места для подписи под картинкой при экспорте: занятые места
-  // (если включён includeFio) с ФИО и, если включён includeComment, с
-  // комментарием; и отдельно — свободные места с непустым комментарием
-  // (если включён includeComment), без ФИО, например "место придержано".
+  // (если включён includeFio — с ФИО, и/или если включён includeComment —
+  // с комментарием, даже когда ФИО отдельно выключено) и свободные места с
+  // непустым комментарием (если включён includeComment), без ФИО, например
+  // "место придержано".
   function collectSeatsForExport(includeFio, includeComment) {
     var list = [];
     $(".line-mesto[data-mesto]").each(function () {
@@ -660,18 +661,21 @@ $(document).ready(function () {
         .hasClass("mesto-status-svob");
       var mestoN = lineMesto.attr("data-mesto");
       var comment = (lineMesto.find(".mestoComment").val() || "").trim();
+      var hasComment = includeComment && comment;
       if (!isFree) {
-        if (!includeFio) {
+        if (!includeFio && !hasComment) {
           return;
         }
-        var name = (lineMesto.find(".mestoFio").val() || "").trim();
+        var name = includeFio
+          ? (lineMesto.find(".mestoFio").val() || "").trim()
+          : null;
         list.push({
           n: mestoN,
-          name: name,
-          comment: includeComment ? comment : "",
+          name: includeFio ? name : null,
+          comment: hasComment ? comment : null,
         });
-      } else if (includeComment && comment) {
-        list.push({ n: mestoN, name: "", comment: comment, freeSeat: true });
+      } else if (hasComment) {
+        list.push({ n: mestoN, name: null, comment: comment, freeSeat: true });
       }
     });
     list.sort(function (a, b) {
@@ -683,7 +687,8 @@ $(document).ready(function () {
   // Строит итоговый canvas для копирования/скачивания: сама картинка схемы
   // автобуса, и (если отмечен один из чекбоксов) список мест под ней —
   // это позволяет отправить одну картинку, где видно, кто на каком месте
-  // и/или какие места придержаны с пометкой.
+  // и/или какие места придержаны с пометкой. Комментарий рисуется другим
+  // цветом (курсивом), чтобы визуально отличаться от ФИО/номера места.
   function buildExportCanvas() {
     var img = $("img")[0];
     var baseWidth = img.naturalWidth || 1550;
@@ -719,24 +724,40 @@ $(document).ready(function () {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, baseWidth, baseHeight);
 
-    ctx.font = "bold " + fontSize + "px Arial, sans-serif";
-    ctx.fillStyle = "#222222";
+    var boldFont = "bold " + fontSize + "px Arial, sans-serif";
+    var commentFont = "italic " + fontSize + "px Arial, sans-serif";
+    var mainColor = "#222222";
+    var commentColor = "#1d6fa5";
     ctx.textBaseline = "top";
     seats.forEach(function (seat, i) {
       var col = Math.floor(i / rowsPerColumn);
       var row = i % rowsPerColumn;
       var x = padding + col * maxColumnWidth;
       var y = baseHeight + padding + row * lineHeight;
-      var label;
-      if (seat.freeSeat) {
-        label = "Место " + seat.n + ": " + seat.comment;
-      } else {
-        label = "Место " + seat.n + ": " + (seat.name || "(ФИО не указано)");
-        if (seat.comment) {
-          label += " — " + seat.comment;
-        }
+      var maxWidth = maxColumnWidth - padding;
+
+      var leading = "Место " + seat.n + ": ";
+      if (seat.name !== null) {
+        leading += seat.name || "(ФИО не указано)";
       }
-      ctx.fillText(label, x, y, maxColumnWidth - padding);
+
+      ctx.font = boldFont;
+      ctx.fillStyle = mainColor;
+      ctx.fillText(leading, x, y, maxWidth);
+
+      if (seat.comment !== null) {
+        var leadingWidth = ctx.measureText(leading).width;
+        var commentText =
+          (seat.name !== null ? " — " : "") + seat.comment;
+        ctx.font = commentFont;
+        ctx.fillStyle = commentColor;
+        ctx.fillText(
+          commentText,
+          x + leadingWidth,
+          y,
+          Math.max(0, maxWidth - leadingWidth),
+        );
+      }
     });
 
     return Promise.resolve(canvas);
