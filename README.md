@@ -57,4 +57,4 @@ online demo: https://agran.github.io/bus-seat-planner/
 
 ©️ agran@agran.net
 
-![image](https://github.com/agran/choosing-a-seat-on-the-bus/assets/7409036/b5d6338d-743c-4b11-9fc1-ef5431d16357)
+<img width="1882" height="1492" alt="image" src="https://github.com/user-attachments/assets/0f23e39f-275f-4037-b1da-f3ff6b8cc01e" />
