@@ -15,7 +15,13 @@ img {
   max-width: 40em;
   position: absolute;
   left: 0.5em;
-  /* visibility: hidden; */
+  /* SVG используется только для перехвата кликов/двойных кликов по местам
+     (через pointer-events: fill на .seat-back/.seat-cushion для обычных
+     профилей), а видимую картинку рисует растеризованный <img> рядом.
+     Скрываем SVG именно через opacity, а не visibility: hidden — иначе
+     потомки с pointer-events: fill тоже стали бы невидимыми для
+     hit-теста и перестали бы реагировать на клики. */
+  opacity: 0;
   pointer-events: none;
 }
 
