@@ -2,6 +2,7 @@ var $svg;
 var allMestaTxt = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20";
 var lastHasheChageTime = 0;
 var isClassicProfile = true;
+var currentProfileId; // id профиля автобуса, отображаемого сейчас
 var update; // определяется внутри document.ready, используется хэш-обработчиком
 
 $(document).ready(function () {
@@ -257,6 +258,10 @@ $(document).ready(function () {
 
   function loadAndRenderProfile(profileId, hashOverride) {
     isClassicProfile = profileId === SeatProfiles.CLASSIC_PROFILE_ID;
+    currentProfileId = profileId;
+    // Запоминаем профиль автобуса за текущей поездкой — у разных поездок
+    // может быть разный автобус.
+    TripStorage.setTripProfileId(TripStorage.getSelectedTripId(), profileId);
 
     $("#imgParent").find("svg").remove();
 
@@ -364,9 +369,15 @@ $(document).ready(function () {
   });
 
   $(document).on("change", "#tripSelect", function () {
-    TripStorage.setSelectedTripId($(this).val());
-    applyTripToTable();
-    update();
+    var newTripId = $(this).val();
+    TripStorage.setSelectedTripId(newTripId);
+    var profileId =
+      TripStorage.getTripProfileId(newTripId) ||
+      SeatProfiles.CLASSIC_PROFILE_ID;
+    lastHasheChageTime = Date.now();
+    window.location.hash = "";
+    history.replaceState(null, null, " ");
+    loadAndRenderProfile(profileId, null);
   });
 
   $(document).on("click", "#btnNewTrip", function () {
@@ -381,10 +392,12 @@ $(document).ready(function () {
     if (!name) {
       return;
     }
-    TripStorage.createTrip(name);
+    // Новая поездка по умолчанию наследует профиль автобуса, который
+    // отображается прямо сейчас — его можно сразу поменять через
+    // "Профиль автобуса", это не повлияет на другие поездки.
+    TripStorage.createTrip(name, currentProfileId);
     populateTripSelect();
-    applyTripToTable();
-    update();
+    loadAndRenderProfile(currentProfileId, null);
   });
 
   $(document).on("click", "#btnRenameTrip", function () {
@@ -418,8 +431,11 @@ $(document).ready(function () {
     }
     TripStorage.deleteTrip(tripId);
     populateTripSelect();
-    applyTripToTable();
-    update();
+    var newTripId = TripStorage.getSelectedTripId();
+    var profileId =
+      TripStorage.getTripProfileId(newTripId) ||
+      SeatProfiles.CLASSIC_PROFILE_ID;
+    loadAndRenderProfile(profileId, null);
   });
 
   $(document).on("dblclick", "path[id]", function () {
@@ -565,7 +581,12 @@ $(document).ready(function () {
     }
   });
 
-  var initialProfileId = SeatProfiles.getSelectedProfileId();
+  // Профиль автобуса привязан к поездке: если для текущей поездки уже
+  // сохранён свой профиль — используем его, иначе (первый запуск/старые
+  // поездки, созданные до этой привязки) — глобально выбранный профиль.
+  var initialProfileId =
+    TripStorage.getTripProfileId(TripStorage.getSelectedTripId()) ||
+    SeatProfiles.getSelectedProfileId();
   var initialHash =
     window.location.hash != "" ? window.location.hash.substring(1) : null;
   loadAndRenderProfile(initialProfileId, initialHash);

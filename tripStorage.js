@@ -1,6 +1,7 @@
 /* tripStorage.js
- * Хранение "поездок" в localStorage: у каждой поездки — своё название и
- * свой набор данных по местам (занято/свободно + ФИО пассажира).
+ * Хранение "поездок" в localStorage: у каждой поездки — своё название,
+ * свой профиль автобуса (разные поездки могут быть на разных автобусах)
+ * и свой набор данных по местам (занято/свободно + ФИО пассажира).
  * Используется в index.html, чтобы можно было завести несколько поездок
  * и переключаться между ними, не теряя данные предыдущих.
  *
@@ -8,6 +9,7 @@
  * {
  *   id: string,
  *   name: string,
+ *   profileId: string | null, // id профиля автобуса (SeatProfiles) или null — тогда используется классический профиль
  *   seats: { [seatNumber: string]: { occupied: boolean, name: string } }
  * }
  *
@@ -78,8 +80,13 @@ var TripStorage = (function () {
     );
   }
 
-  function createTripObject(name) {
-    return { id: generateId(), name: name, seats: {} };
+  function createTripObject(name, profileId) {
+    return {
+      id: generateId(),
+      name: name,
+      profileId: profileId || null,
+      seats: {},
+    };
   }
 
   function getTrips() {
@@ -117,9 +124,9 @@ var TripStorage = (function () {
     }
   }
 
-  function createTrip(name) {
+  function createTrip(name, profileId) {
     var store = loadStore();
-    var trip = createTripObject(name || "Новая поездка");
+    var trip = createTripObject(name || "Новая поездка", profileId);
     store.trips.push(trip);
     store.selectedTripId = trip.id;
     saveStore(store);
@@ -188,6 +195,25 @@ var TripStorage = (function () {
     saveStore(store);
   }
 
+  // Возвращает id профиля автобуса, сохранённый для поездки, или null,
+  // если для поездки профиль ещё не задавался (тогда вызывающий код сам
+  // решает, что считать умолчанием — например, классический профиль).
+  function getTripProfileId(tripId) {
+    var trip = getTrip(tripId);
+    return trip ? trip.profileId || null : null;
+  }
+
+  function setTripProfileId(tripId, profileId) {
+    var store = loadStore();
+    var trip = store.trips.filter(function (t) {
+      return t.id === tripId;
+    })[0];
+    if (trip) {
+      trip.profileId = profileId || null;
+      saveStore(store);
+    }
+  }
+
   return {
     getTrips: getTrips,
     getTrip: getTrip,
@@ -199,5 +225,7 @@ var TripStorage = (function () {
     deleteTrip: deleteTrip,
     getSeatData: getSeatData,
     setSeatData: setSeatData,
+    getTripProfileId: getTripProfileId,
+    setTripProfileId: setTripProfileId,
   };
 })();
