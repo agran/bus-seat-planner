@@ -87,7 +87,7 @@ $(document).ready(function () {
     // отметить, что место нужно придержать для кого-то конкретного.
     var $comment = $("<input type='text' class='mestoComment'>").attr(
       "placeholder",
-      isFree ? "Комментарий (например, придержать)" : "Комментарий",
+      "Комментарий",
     );
     $line.append($comment);
 
