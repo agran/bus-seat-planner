@@ -391,6 +391,16 @@ $(document).ready(function () {
   populateTripSelect();
   initCloudSync();
 
+  // Кнопка "К схеме" видна только на мобильных экранах (см. media query в
+  // viewer.css) — плавно прокручивает страницу к картинке автобуса, чтобы
+  // не тянуться пальцем через длинный список мест вручную.
+  $(document).on("click", "#btnScrollToImage", function () {
+    var target = document.getElementById("imgParent");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
   $(document).on("click", ".bZan", function () {
     pushUndoSnapshot();
     var lineMesto = $(this).closest(".line-mesto");
