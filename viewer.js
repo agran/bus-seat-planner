@@ -763,22 +763,51 @@ $(document).ready(function () {
     return Promise.resolve(canvas);
   }
 
+  // Копирует картинку в буфер обмена. Если документ в этот момент не в
+  // фокусе (например, из-за долгой отрисовки картинки, DevTools, или
+  // предыдущего клика, который перевёл фокус в другое окно), браузер
+  // отклоняет navigator.clipboard.write с "Document is not focused" —
+  // в этом случае просим пользователя кликнуть на страницу и попробовать
+  // ещё раз, а не даём необработанное исключение улетать в консоль.
+  // Возвращает promise, который резолвится в true при успехе и в false
+  // при неудаче (после показа сообщения пользователю).
+  function copyCanvasToClipboard(canvas) {
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (blob) {
+        window.focus();
+        navigator.clipboard
+          .write([new ClipboardItem({ "image/png": blob })])
+          .then(resolve, reject);
+      }, "image/png");
+    }).then(
+      function () {
+        return true;
+      },
+      function (err) {
+        console.error("Не удалось скопировать картинку в буфер обмена:", err);
+        alert(
+          "Не удалось скопировать картинку в буфер обмена (страница потеряла фокус). Кликните на страницу и попробуйте ещё раз, либо используйте кнопку «Скачать картинку».",
+        );
+        return false;
+      },
+    );
+  }
+
   $(document).on("click", ".copy", function (e) {
     buildExportCanvas().then(function (canvas) {
-      canvas.toBlob((blob) => {
-        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      }, "image/png");
+      copyCanvasToClipboard(canvas);
     });
   });
   $(document).on("click", ".copyClose", function (e) {
     buildExportCanvas().then(function (canvas) {
-      canvas.toBlob((blob) => {
-        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-
+      copyCanvasToClipboard(canvas).then(function (success) {
+        if (!success) {
+          return;
+        }
         setTimeout(function () {
           open(location, "_self").close();
         }, 50);
-      }, "image/png");
+      });
     });
   });
 
