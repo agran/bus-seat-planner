@@ -72,10 +72,9 @@ $(document).ready(function () {
     $line.append($btn);
     $line.append(" ");
 
-    // ФИО пассажира и комментарий — активны только для занятых мест, чтобы
-    // не заполнять данные там, где ещё никто не сидит. Место гида по
-    // умолчанию занято гидом, поэтому сразу подставляем "Гид" вместо
-    // пустого поля.
+    // ФИО пассажира активно только для занятых мест, чтобы не заполнять
+    // данные там, где ещё никто не сидит. Место гида по умолчанию занято
+    // гидом, поэтому сразу подставляем "Гид" вместо пустого поля.
     var $fio = $("<input type='text' class='mestoFio'>")
       .attr("placeholder", "ФИО пассажира")
       .prop("disabled", isFree);
@@ -84,9 +83,12 @@ $(document).ready(function () {
     }
     $line.append($fio);
 
-    var $comment = $("<input type='text' class='mestoComment'>")
-      .attr("placeholder", "Комментарий")
-      .prop("disabled", isFree);
+    // Комментарий доступен и для свободных мест — например, чтобы
+    // отметить, что место нужно придержать для кого-то конкретного.
+    var $comment = $("<input type='text' class='mestoComment'>").attr(
+      "placeholder",
+      isFree ? "Комментарий (например, придержать)" : "Комментарий",
+    );
     $line.append($comment);
 
     return $line;
@@ -126,7 +128,8 @@ $(document).ready(function () {
   // Приводит строку места к её состоянию по умолчанию для текущего профиля
   // автобуса (без учёта поездки) — нужно при переключении поездок, чтобы
   // места, не тронутые в новой поездке, не наследовали статус/ФИО из
-  // предыдущей.
+  // предыдущей. Комментарий тоже сбрасывается — накладывается отдельно из
+  // applyTripToTable(), т.к. он может быть задан и для свободного места.
   function resetLineMestoToDefault(lineMesto) {
     var isFree = lineMesto.attr("data-default-free") !== "false";
     var isGuide = lineMesto.attr("data-guide") === "true";
@@ -140,7 +143,8 @@ $(document).ready(function () {
 
   // Единая точка изменения визуального состояния строки места: статус,
   // кнопка и поля ФИО/комментария (активность + значение) всегда меняются
-  // вместе.
+  // вместе. Комментарий, в отличие от ФИО, остаётся доступным и для
+  // свободного места — например, чтобы придержать его для кого-то.
   function setLineMestoState(lineMesto, isFree, name, comment) {
     var fioInput = lineMesto.find(".mestoFio");
     var commentInput = lineMesto.find(".mestoComment");
@@ -156,7 +160,9 @@ $(document).ready(function () {
         .addClass("bZan")
         .html("Занять");
       fioInput.val("").prop("disabled", true);
-      commentInput.val("").prop("disabled", true);
+      if (comment !== undefined && comment !== null) {
+        commentInput.val(comment);
+      }
     } else {
       lineMesto
         .find(".mesto-status")
@@ -172,7 +178,6 @@ $(document).ready(function () {
       if (name !== undefined && name !== null) {
         fioInput.val(name);
       }
-      commentInput.prop("disabled", false);
       if (comment !== undefined && comment !== null) {
         commentInput.val(comment);
       }
