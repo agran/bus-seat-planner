@@ -48,10 +48,11 @@ $(document).ready(function () {
     }
   }
 
-  function buildLineMesto(n, isFree) {
+  function buildLineMesto(n, isFree, isGuide) {
     var $line = $("<div class='line-mesto'>")
       .attr("data-mesto", n)
-      .attr("data-default-free", isFree ? "true" : "false");
+      .attr("data-default-free", isFree ? "true" : "false")
+      .attr("data-guide", isGuide ? "true" : "false");
 
     $line.append($("<span class='mesto-n'>").text(n + "."));
     $line.append(" ");
@@ -70,10 +71,14 @@ $(document).ready(function () {
     $line.append(" ");
 
     // ФИО пассажира — активно только для занятых мест, чтобы не заполнять
-    // имена там, где ещё никто не сидит.
+    // имена там, где ещё никто не сидит. Место гида по умолчанию занято
+    // гидом, поэтому сразу подставляем "Гид" вместо пустого поля.
     var $fio = $("<input type='text' class='mestoFio'>")
       .attr("placeholder", "ФИО пассажира")
       .prop("disabled", isFree);
+    if (!isFree && isGuide) {
+      $fio.val("Гид");
+    }
     $line.append($fio);
 
     return $line;
@@ -82,9 +87,9 @@ $(document).ready(function () {
   function buildClassicMestaTable() {
     var $rows = [];
     for (let i = 1; i <= 19; i++) {
-      $rows.push(buildLineMesto(i, true));
+      $rows.push(buildLineMesto(i, true, false));
     }
-    $rows.push(buildLineMesto(20, false));
+    $rows.push(buildLineMesto(20, false, false));
     $("#mestaTable").empty().append($rows);
   }
 
@@ -105,7 +110,7 @@ $(document).ready(function () {
     }
 
     var $rows = rows.map(function (row) {
-      return buildLineMesto(row.n, !row.isGuide);
+      return buildLineMesto(row.n, !row.isGuide, row.isGuide);
     });
     $("#mestaTable").empty().append($rows);
   }
@@ -116,7 +121,8 @@ $(document).ready(function () {
   // предыдущей.
   function resetLineMestoToDefault(lineMesto) {
     var isFree = lineMesto.attr("data-default-free") !== "false";
-    setLineMestoState(lineMesto, isFree, "");
+    var isGuide = lineMesto.attr("data-guide") === "true";
+    setLineMestoState(lineMesto, isFree, isFree ? "" : isGuide ? "Гид" : "");
   }
 
   // Единая точка изменения визуального состояния строки места: статус,
