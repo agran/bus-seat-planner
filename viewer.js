@@ -678,6 +678,7 @@ $(document).ready(function () {
     var baseWidth = img.naturalWidth || 1550;
     var baseHeight = img.naturalHeight || 642;
     var includeFio = $("#includeFioOnImage").is(":checked");
+    var includeComment = $("#includeCommentOnImage").is(":checked");
     var seats = includeFio ? collectOccupiedSeatsWithFio() : [];
 
     var canvas = document.createElement("canvas");
@@ -717,7 +718,7 @@ $(document).ready(function () {
       var y = baseHeight + padding + row * lineHeight;
       var label =
         "Место " + seat.n + ": " + (seat.name || "(ФИО не указано)");
-      if (seat.comment) {
+      if (includeComment && seat.comment) {
         label += " — " + seat.comment;
       }
       ctx.fillText(label, x, y, maxColumnWidth - padding);
