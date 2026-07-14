@@ -647,22 +647,32 @@ $(document).ready(function () {
     lineMesto.find("button").click();
   });
 
-  // Собирает занятые места с ФИО и комментарием (по номеру места, по
-  // возрастанию) — нужно для подписи списком под картинкой при экспорте.
-  function collectOccupiedSeatsWithFio() {
+  // Собирает места для подписи под картинкой при экспорте: занятые места
+  // (если включён includeFio) с ФИО и, если включён includeComment, с
+  // комментарием; и отдельно — свободные места с непустым комментарием
+  // (если включён includeComment), без ФИО, например "место придержано".
+  function collectSeatsForExport(includeFio, includeComment) {
     var list = [];
     $(".line-mesto[data-mesto]").each(function () {
       var lineMesto = $(this);
       var isFree = lineMesto
         .find(".mesto-status")
         .hasClass("mesto-status-svob");
-      if (isFree) {
-        return;
-      }
       var mestoN = lineMesto.attr("data-mesto");
-      var name = (lineMesto.find(".mestoFio").val() || "").trim();
       var comment = (lineMesto.find(".mestoComment").val() || "").trim();
-      list.push({ n: mestoN, name: name, comment: comment });
+      if (!isFree) {
+        if (!includeFio) {
+          return;
+        }
+        var name = (lineMesto.find(".mestoFio").val() || "").trim();
+        list.push({
+          n: mestoN,
+          name: name,
+          comment: includeComment ? comment : "",
+        });
+      } else if (includeComment && comment) {
+        list.push({ n: mestoN, name: "", comment: comment, freeSeat: true });
+      }
     });
     list.sort(function (a, b) {
       return Number(a.n) - Number(b.n);
@@ -671,15 +681,16 @@ $(document).ready(function () {
   }
 
   // Строит итоговый canvas для копирования/скачивания: сама картинка схемы
-  // автобуса, и (если отмечен чекбокс) список "место — ФИО" под ней —
-  // это позволяет отправить одну картинку, где видно, кто на каком месте.
+  // автобуса, и (если отмечен один из чекбоксов) список мест под ней —
+  // это позволяет отправить одну картинку, где видно, кто на каком месте
+  // и/или какие места придержаны с пометкой.
   function buildExportCanvas() {
     var img = $("img")[0];
     var baseWidth = img.naturalWidth || 1550;
     var baseHeight = img.naturalHeight || 642;
     var includeFio = $("#includeFioOnImage").is(":checked");
     var includeComment = $("#includeCommentOnImage").is(":checked");
-    var seats = includeFio ? collectOccupiedSeatsWithFio() : [];
+    var seats = collectSeatsForExport(includeFio, includeComment);
 
     var canvas = document.createElement("canvas");
     if (seats.length === 0) {
@@ -716,10 +727,14 @@ $(document).ready(function () {
       var row = i % rowsPerColumn;
       var x = padding + col * maxColumnWidth;
       var y = baseHeight + padding + row * lineHeight;
-      var label =
-        "Место " + seat.n + ": " + (seat.name || "(ФИО не указано)");
-      if (includeComment && seat.comment) {
-        label += " — " + seat.comment;
+      var label;
+      if (seat.freeSeat) {
+        label = "Место " + seat.n + ": " + seat.comment;
+      } else {
+        label = "Место " + seat.n + ": " + (seat.name || "(ФИО не указано)");
+        if (seat.comment) {
+          label += " — " + seat.comment;
+        }
       }
       ctx.fillText(label, x, y, maxColumnWidth - padding);
     });
