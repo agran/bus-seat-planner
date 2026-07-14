@@ -29,7 +29,7 @@
 - **Облачное хранилище профилей (опционально)** — можно подключить свой
   бесплатный проект [Firebase](https://firebase.google.com/), тогда
   профили, сохранённые в `admin.html`, сразу видны всем посетителям
-  `avtobusJZ.html`. Подробная инструкция по настройке —
+  `index.html`. Подробная инструкция по настройке —
   в [`FIREBASE_SETUP.md`](FIREBASE_SETUP.md).
 - **Классический профиль** — исходная схема Mercedes Sprinter (20 мест)
   оставлена как встроенный профиль по умолчанию.
@@ -39,11 +39,11 @@
 
 ## Как пользоваться
 
-1. Откройте `avtobusJZ.html` — здесь отображается схема автобуса, отмечаются
+1. Откройте `index.html` — здесь отображается схема автобуса, отмечаются
    свободные/занятые места, копируется/скачивается итоговая картинка.
 2. Откройте `admin.html`, чтобы создать свой профиль автобуса или
    отредактировать существующий. Сохранённые профили сразу становятся
-   доступны для выбора в `avtobusJZ.html`.
+   доступны для выбора в `index.html`.
 
 Можете свободно копировать себе на сайт и использовать в любых целях.
 
@@ -51,7 +51,7 @@
 
 You can freely copy this project to your website and use it for any purpose. MIT license.
 
-online demo: https://agran.github.io/bus-seat-planner/avtobusJZ.html
+online demo: https://agran.github.io/bus-seat-planner/
 
 Основано на проекте [choosing-a-seat-on-the-bus](https://github.com/agran/choosing-a-seat-on-the-bus).
 

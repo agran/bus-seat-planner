@@ -25,7 +25,7 @@
       сетки, отметить клетки как места (с номером) или как место для гида
       (всегда занято, не участвует в выборе мест), и сохранить получившийся
       профиль. Сохранённые профили появятся на
-      <a href="avtobusJZ.html">главной странице</a> в выпадающем списке.
+      <a href="index.html">главной странице</a> в выпадающем списке.
       <br />
       <b>Важно:</b>
       в сетке колонки — это длина автобуса, а строки — ширина салона. Правый
@@ -36,9 +36,27 @@
     <div class="panel" id="cloudAuthPanel">
       <span id="cloudStatus">Облачное хранилище: подключение…</span>
       <span id="cloudLoginForm" style="display: none">
-        <input type="email" id="cloudEmail" placeholder="Email администратора" size="22" autocomplete="off" />
-        <input type="password" id="cloudPassword" placeholder="Пароль" size="14" autocomplete="off" />
-        <button type="button" id="btnTogglePassword" title="Показать/скрыть пароль">👁</button>
+        <input
+          type="email"
+          id="cloudEmail"
+          placeholder="Email администратора"
+          size="22"
+          autocomplete="off"
+        />
+        <input
+          type="password"
+          id="cloudPassword"
+          placeholder="Пароль"
+          size="14"
+          autocomplete="off"
+        />
+        <button
+          type="button"
+          id="btnTogglePassword"
+          title="Показать/скрыть пароль"
+        >
+          👁
+        </button>
         <button id="btnCloudLogin">Войти</button>
       </span>
       <button id="btnCloudLogout" style="display: none">Выйти</button>
@@ -139,6 +157,6 @@
     <button id="btnImport">Загрузить профиль из поля выше</button>
 
     <br /><br />
-    <a href="avtobusJZ.html">← Вернуться на главную страницу</a>
+    <a href="index.html">← Вернуться на главную страницу</a>
   </body>
 </html>
