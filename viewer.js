@@ -52,28 +52,49 @@ $(document).ready(function () {
     }
   }
 
+  function buildLineMesto(n, isFree) {
+    var $line = $("<div class='line-mesto'>")
+      .attr("data-mesto", n)
+      .attr("data-default-free", isFree ? "true" : "false");
+
+    $line.append($("<span class='mesto-n'>").text(n + "."));
+    $line.append(" ");
+
+    var statusClass = isFree ? "mesto-status-svob" : "mesto-status-zan";
+    var statusText = isFree ? "Свободно" : "Занято";
+    $line.append(
+      $("<span class='mesto-status'>").addClass(statusClass).text(statusText),
+    );
+    $line.append(" ");
+
+    var $btn = isFree
+      ? $("<button class='bZan'>").text("Занять")
+      : $("<button class='bOsv'>").text("Освободить");
+    $line.append($btn);
+    $line.append(" ");
+
+    // ФИО пассажира — активно только для занятых мест, чтобы не заполнять
+    // имена там, где ещё никто не сидит.
+    var $fio = $("<input type='text' class='mestoFio'>")
+      .attr("placeholder", "ФИО пассажира")
+      .prop("disabled", isFree);
+    $line.append($fio);
+
+    return $line;
+  }
+
   function buildClassicMestaTable() {
-    var mestaTableHtml = "";
+    var $rows = [];
     for (let i = 1; i <= 19; i++) {
-      mestaTableHtml +=
-        "<div class=line-mesto data-mesto=" +
-        i +
-        "><span class='mesto-n'>" +
-        i +
-        ".</span> <span class='mesto-status mesto-status-svob'>Свободно</span> <button class=bZan>Занять</button></div>";
+      $rows.push(buildLineMesto(i, true));
     }
-    mestaTableHtml +=
-      "<div class=line-mesto data-mesto=" +
-      20 +
-      "><span class='mesto-n'>" +
-      20 +
-      ".</span> <span class='mesto-status mesto-status-zan'>Занято</span> <button class=bOsv>Освободить</button></div>";
-    $("#mestaTable").html(mestaTableHtml);
+    $rows.push(buildLineMesto(20, false));
+    $("#mestaTable").empty().append($rows);
   }
 
   function buildGenericMestaTable(seatNumbers, guideCell) {
-    var mestaTableHtml = "";
-    var guideNumber = guideCell && guideCell.number != null ? guideCell.number : null;
+    var guideNumber =
+      guideCell && guideCell.number != null ? guideCell.number : null;
 
     // Место гида вставляем в общий порядок по номеру, чтобы список читался
     // как непрерывная нумерация мест, а не отдельным блоком в конце.
@@ -87,26 +108,81 @@ $(document).ready(function () {
       });
     }
 
-    rows.forEach(function (row) {
-      var status = row.isGuide ? "zan" : "svob";
-      var statusText = row.isGuide ? "Занято" : "Свободно";
-      var button = row.isGuide
-        ? "<button class=bOsv>Освободить</button>"
-        : "<button class=bZan>Занять</button>";
-      mestaTableHtml +=
-        "<div class=line-mesto data-mesto=" +
-        row.n +
-        "><span class='mesto-n'>" +
-        row.n +
-        ".</span> <span class='mesto-status mesto-status-" +
-        status +
-        "'>" +
-        statusText +
-        "</span> " +
-        button +
-        "</div>";
+    var $rows = rows.map(function (row) {
+      return buildLineMesto(row.n, !row.isGuide);
     });
-    $("#mestaTable").html(mestaTableHtml);
+    $("#mestaTable").empty().append($rows);
+  }
+
+  // Приводит строку места к её состоянию по умолчанию для текущего профиля
+  // автобуса (без учёта поездки) — нужно при переключении поездок, чтобы
+  // места, не тронутые в новой поездке, не наследовали статус/ФИО из
+  // предыдущей.
+  function resetLineMestoToDefault(lineMesto) {
+    var isFree = lineMesto.attr("data-default-free") !== "false";
+    setLineMestoState(lineMesto, isFree, "");
+  }
+
+  // Единая точка изменения визуального состояния строки места: статус,
+  // кнопка и поле ФИО (активность + значение) всегда меняются вместе.
+  function setLineMestoState(lineMesto, isFree, name) {
+    var fioInput = lineMesto.find(".mestoFio");
+    if (isFree) {
+      lineMesto
+        .find(".mesto-status")
+        .removeClass("mesto-status-zan")
+        .addClass("mesto-status-svob")
+        .html("Свободно");
+      lineMesto
+        .find("button")
+        .removeClass("bOsv")
+        .addClass("bZan")
+        .html("Занять");
+      fioInput.val("").prop("disabled", true);
+    } else {
+      lineMesto
+        .find(".mesto-status")
+        .removeClass("mesto-status-svob")
+        .addClass("mesto-status-zan")
+        .html("Занято");
+      lineMesto
+        .find("button")
+        .removeClass("bZan")
+        .addClass("bOsv")
+        .html("Освободить");
+      fioInput.prop("disabled", false);
+      if (name !== undefined && name !== null) {
+        fioInput.val(name);
+      }
+    }
+  }
+
+  // Накладывает на построенную таблицу мест данные текущей поездки:
+  // сначала сбрасывает всё к дефолту схемы автобуса, затем применяет то,
+  // что явно сохранено для этой поездки (занятость + ФИО).
+  function applyTripToTable() {
+    var tripId = TripStorage.getSelectedTripId();
+    $(".line-mesto[data-mesto]").each(function () {
+      var lineMesto = $(this);
+      resetLineMestoToDefault(lineMesto);
+      var mestoN = lineMesto.attr("data-mesto");
+      var data = TripStorage.getSeatData(tripId, mestoN);
+      if (data) {
+        setLineMestoState(lineMesto, !data.occupied, data.name);
+      }
+    });
+  }
+
+  function populateTripSelect() {
+    var $sel = $("#tripSelect");
+    if ($sel.length === 0) {
+      return;
+    }
+    $sel.empty();
+    TripStorage.getTrips().forEach(function (t) {
+      $sel.append($("<option>").val(t.id).text(t.name));
+    });
+    $sel.val(TripStorage.getSelectedTripId());
   }
 
   function setSeatVisual(mestoN, isFree) {
@@ -128,15 +204,18 @@ $(document).ready(function () {
   update = function () {
     var mestaTxt = "";
     var mestaZanTxt = "";
+    var tripId = TripStorage.getSelectedTripId();
     $(".line-mesto[data-mesto]").each(function () {
       var mestoN = $(this).attr("data-mesto");
       var isFree = $(this).find(".mesto-status").hasClass("mesto-status-svob");
+      var fioName = $(this).find(".mestoFio").val() || "";
       if (isFree) {
         mestaTxt += mestoN + ",";
       } else {
         mestaZanTxt += mestoN + ",";
       }
       setSeatVisual(mestoN, isFree);
+      TripStorage.setSeatData(tripId, mestoN, !isFree, fioName);
     });
 
     if (mestaTxt.length > 0 && mestaTxt[mestaTxt.length - 1] === ",") {
@@ -217,6 +296,11 @@ $(document).ready(function () {
       $("#profileSelect").val(profileId);
     }
 
+    // Накладываем занятость/ФИО из текущей поездки поверх дефолтов схемы —
+    // до применения хэша из ссылки, чтобы явная ссылка на конкретную
+    // расстановку (если она есть) имела приоритет.
+    applyTripToTable();
+
     if (hashOverride) {
       $("#mestaSvobodnInput").val(hashOverride);
       $("#mestaSvobodnInput").trigger("change");
@@ -246,37 +330,95 @@ $(document).ready(function () {
   );
 
   populateProfileSelect();
+  populateTripSelect();
   initCloudSync();
 
   $(document).on("click", ".bZan", function () {
-    var lineMesto = $(this).parent();
-    lineMesto
-      .find(".mesto-status")
-      .removeClass("mesto-status-svob")
-      .addClass("mesto-status-zan")
-      .html("Занято");
-    lineMesto
-      .find("button")
-      .removeClass("bZan")
-      .addClass("bOsv")
-      .html("Освободить");
-
+    var lineMesto = $(this).closest(".line-mesto");
+    setLineMestoState(lineMesto, false);
     update();
+    lineMesto.find(".mestoFio").trigger("focus");
   });
 
   $(document).on("click", ".bOsv", function () {
-    var lineMesto = $(this).parent();
-    lineMesto
-      .find(".mesto-status")
-      .removeClass("mesto-status-zan")
-      .addClass("mesto-status-svob")
-      .html("Свободно");
-    lineMesto
-      .find("button")
-      .removeClass("bOsv")
-      .addClass("bZan")
-      .html("Занять");
+    var lineMesto = $(this).closest(".line-mesto");
+    setLineMestoState(lineMesto, true);
+    update();
+  });
 
+  // Ввод ФИО сохраняем сразу же в данные текущей поездки, без ожидания
+  // клика по кнопке "Обновить" — но без полного update(), чтобы не
+  // перерисовывать SVG/PNG на каждое нажатие клавиши.
+  $(document).on("input", ".mestoFio", function () {
+    var lineMesto = $(this).closest(".line-mesto");
+    var mestoN = lineMesto.attr("data-mesto");
+    var isFree = lineMesto
+      .find(".mesto-status")
+      .hasClass("mesto-status-svob");
+    TripStorage.setSeatData(
+      TripStorage.getSelectedTripId(),
+      mestoN,
+      !isFree,
+      $(this).val(),
+    );
+  });
+
+  $(document).on("change", "#tripSelect", function () {
+    TripStorage.setSelectedTripId($(this).val());
+    applyTripToTable();
+    update();
+  });
+
+  $(document).on("click", "#btnNewTrip", function () {
+    var name = prompt(
+      "Название новой поездки:",
+      "Поездка " + (TripStorage.getTrips().length + 1),
+    );
+    if (name === null) {
+      return;
+    }
+    name = name.trim();
+    if (!name) {
+      return;
+    }
+    TripStorage.createTrip(name);
+    populateTripSelect();
+    applyTripToTable();
+    update();
+  });
+
+  $(document).on("click", "#btnRenameTrip", function () {
+    var tripId = TripStorage.getSelectedTripId();
+    var trip = TripStorage.getTrip(tripId);
+    var name = prompt("Новое название поездки:", trip ? trip.name : "");
+    if (name === null) {
+      return;
+    }
+    name = name.trim();
+    if (!name) {
+      return;
+    }
+    TripStorage.renameTrip(tripId, name);
+    populateTripSelect();
+  });
+
+  $(document).on("click", "#btnDeleteTrip", function () {
+    var tripId = TripStorage.getSelectedTripId();
+    var trip = TripStorage.getTrip(tripId);
+    var trips = TripStorage.getTrips();
+    var tripName = trip ? trip.name : "";
+    var confirmMsg =
+      trips.length <= 1
+        ? "Это последняя поездка — удалить её нельзя, но можно очистить все занятые места и ФИО в ней. Очистить?"
+        : "Удалить поездку «" +
+          tripName +
+          "»? Все занятые места и ФИО в ней будут потеряны.";
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+    TripStorage.deleteTrip(tripId);
+    populateTripSelect();
+    applyTripToTable();
     update();
   });
 
@@ -297,9 +439,7 @@ $(document).ready(function () {
     // (например, из-за легенды под схемой), нельзя жёстко фиксировать 1550x642.
     canvas.width = img.naturalWidth || 1550;
     canvas.height = img.naturalHeight || 642;
-    canvas
-      .getContext("2d")
-      .drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
       navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     }, "image/png");
@@ -310,9 +450,7 @@ $(document).ready(function () {
 
     canvas.width = img.naturalWidth || 1550;
     canvas.height = img.naturalHeight || 642;
-    canvas
-      .getContext("2d")
-      .drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
       navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
@@ -358,18 +496,7 @@ $(document).ready(function () {
 
   $(document).on("change", "#mestaSvobodnInput", function () {
     $(".line-mesto[data-mesto]").each(function () {
-      var lineMesto = $(this);
-
-      lineMesto
-        .find(".mesto-status")
-        .removeClass("mesto-status-svob")
-        .addClass("mesto-status-zan")
-        .html("Занято");
-      lineMesto
-        .find("button")
-        .removeClass("bZan")
-        .addClass("bOsv")
-        .html("Освободить");
+      setLineMestoState($(this), false);
     });
 
     var arrMesta = $(this)
@@ -387,19 +514,7 @@ $(document).ready(function () {
       }
 
       var lineMesto = $('.line-mesto[data-mesto="' + mestoN + '"]');
-
-      lineMesto
-        .find(".mesto-status")
-        .removeClass("mesto-status-zan")
-        .addClass("mesto-status-svob")
-        .html("Свободно");
-      lineMesto
-        .find("button")
-        .removeClass("bOsv")
-        .addClass("bZan")
-        .html("Занять");
-
-      console.log(mestoN);
+      setLineMestoState(lineMesto, true);
     });
 
     $("#mestaZanyatyInput").val(arrMestaZan.join(","));

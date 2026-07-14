@@ -86,6 +86,22 @@ img {
 .line-mesto {
   margin-top: 0.15em;
   margin-bottom: 0.15em;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.15em;
+}
+
+.mestoFio {
+  margin-left: 0.5em;
+  width: 12em;
+  max-width: 45vw;
+}
+
+.mestoFio:disabled {
+  background-color: #eee;
+  color: #999;
+  border-color: #ddd;
 }
 .clickedSVG {
   pointer-events: fill;

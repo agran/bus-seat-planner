@@ -7,17 +7,21 @@
 
 	<script src="jquery-3.7.1.min.js"></script>
     <script src="seatProfiles.js?8"></script>
+    <script src="tripStorage.js?1"></script>
     <script src="firebase-config.js?1"></script>
     <script type="module" src="cloudSync.js?1"></script>
-	<script src="viewer.js?16"></script>
+	<script src="viewer.js?17"></script>
 
 	<link rel="stylesheet" href="seatProfiles.css?1">
-	<link rel="stylesheet" href="viewer.css?13">
+	<link rel="stylesheet" href="viewer.css?14">
 	<meta charset="UTF-8">
 </head>
 <body>
 
 <div class="parentInput profileBar"><div class=mestLabel>Профиль автобуса:</div> <select id="profileSelect"></select> <a href="admin.html">Редактировать профили</a></div>
+
+<div class="parentInput profileBar"><div class=mestLabel>Поездка:</div> <select id="tripSelect"></select> <button id="btnNewTrip">Новая поездка</button><button id="btnRenameTrip">Переименовать</button><button id="btnDeleteTrip">Удалить</button></div>
+<div class="parentInput" id="tripHint">Занятые места и ФИО пассажиров сохраняются в браузере отдельно для каждой поездки.</div>
 
 <div class=parentInput><div class=mestLabel>Свободные места:</div> <input type="text" id="mestaSvobodnInput" size="42" /><button class=copyMesta>Копировать</button><button class=pastMesta>Вставить</button></div>
 <div class=parentInput><div class=mestLabel>Занятые места:</div> <input type="text" id="mestaZanyatyInput" size="42" /><button class=copyMesta>Копировать</button><button class=pastMesta>Вставить</button></div>
