@@ -438,6 +438,140 @@ $(document).ready(function () {
     loadAndRenderProfile(profileId, null);
   });
 
+  // Собирает поездку в переносимый JSON-объект. Профиль автобуса кладём
+  // внутрь целиком (а не только id), иначе поездка на нестандартном
+  // автобусе не откроется корректно в другом браузере, где такого профиля
+  // ещё нет. Для классического профиля профиль не нужен — он встроен в код.
+  function buildTripExportData(tripId) {
+    var trip = TripStorage.getTrip(tripId);
+    if (!trip) {
+      return null;
+    }
+    var profileId = trip.profileId || SeatProfiles.CLASSIC_PROFILE_ID;
+    var isClassic = profileId === SeatProfiles.CLASSIC_PROFILE_ID;
+    var profile = isClassic ? null : SeatProfiles.getProfile(profileId) || null;
+    return {
+      fileType: "bus-seat-planner-trip",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      trip: {
+        name: trip.name,
+        profileId: profileId,
+        seats: trip.seats,
+      },
+      profile: profile,
+    };
+  }
+
+  function sanitizeFileNamePart(text) {
+    return String(text || "поездка")
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, "_")
+      .slice(0, 60);
+  }
+
+  $(document).on("click", "#btnExportTrip", function () {
+    var tripId = TripStorage.getSelectedTripId();
+    var data = buildTripExportData(tripId);
+    if (!data) {
+      alert("Не удалось найти текущую поездку.");
+      return;
+    }
+    var blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "Поездка - " + sanitizeFileNamePart(data.trip.name) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  });
+
+  $(document).on("click", "#btnImportTrip", function () {
+    $("#tripImportInput").val("").trigger("click");
+  });
+
+  $(document).on("change", "#tripImportInput", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) {
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data;
+      try {
+        data = JSON.parse(reader.result);
+      } catch (err) {
+        alert("Не удалось прочитать файл: это не корректный JSON.");
+        return;
+      }
+      importTripFromData(data);
+    };
+    reader.onerror = function () {
+      alert("Не удалось прочитать файл.");
+    };
+    reader.readAsText(file);
+  });
+
+  // Импортирует поездку из объекта, полученного из экспортированного
+  // JSON-файла: при необходимости заводит локальную копию профиля автобуса
+  // (с новым id, чтобы не конфликтовать с уже существующими профилями),
+  // затем создаёт новую поездку с перенесёнными местами/ФИО и переключается
+  // на неё.
+  function importTripFromData(data) {
+    if (!data || typeof data !== "object" || !data.trip) {
+      alert("Файл не похож на экспорт поездки этого приложения.");
+      return;
+    }
+    var tripData = data.trip;
+    var profileId = tripData.profileId || SeatProfiles.CLASSIC_PROFILE_ID;
+
+    if (data.profile && profileId !== SeatProfiles.CLASSIC_PROFILE_ID) {
+      // Всегда сохраняем как новый профиль (сбрасываем id), чтобы случайно
+      // не перезаписать чужой существующий профиль с таким же id.
+      var importedProfile = JSON.parse(JSON.stringify(data.profile));
+      importedProfile.id = null;
+      var saved = SeatProfiles.saveProfile(importedProfile);
+      profileId = saved.id;
+    } else if (
+      profileId !== SeatProfiles.CLASSIC_PROFILE_ID &&
+      !SeatProfiles.getProfile(profileId)
+    ) {
+      // В файле нет профиля, а локально такого id тоже нет — откатываемся
+      // на классический, чтобы хотя бы места не потерялись.
+      console.warn(
+        "Профиль автобуса из файла не найден и не приложен, использую классический.",
+        profileId,
+      );
+      profileId = SeatProfiles.CLASSIC_PROFILE_ID;
+    }
+
+    var newTrip = TripStorage.createTrip(
+      (tripData.name || "Импортированная поездка") + " (импорт)",
+      profileId,
+    );
+    var seats = tripData.seats || {};
+    Object.keys(seats).forEach(function (seatNumber) {
+      var seat = seats[seatNumber] || {};
+      TripStorage.setSeatData(
+        newTrip.id,
+        seatNumber,
+        !!seat.occupied,
+        seat.name || "",
+      );
+    });
+
+    populateProfileSelect();
+    populateTripSelect();
+    loadAndRenderProfile(profileId, null);
+    alert('Поездка «' + newTrip.name + '» импортирована и выбрана.');
+  }
+
   $(document).on("dblclick", "path[id]", function () {
     console.dir($(this).attr("id"));
     var mestoN = Number($(this).attr("id").match(/\d+/)[0]);
