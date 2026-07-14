@@ -580,47 +580,109 @@ $(document).ready(function () {
     lineMesto.find("button").click();
   });
 
-  $(document).on("click", ".copy", function (e) {
-    const canvas = document.createElement("canvas");
-    var img = $("img")[0];
+  // Собирает занятые места с ФИО (по номеру места, по возрастанию) — нужно
+  // для подписи списком под картинкой при экспорте.
+  function collectOccupiedSeatsWithFio() {
+    var list = [];
+    $(".line-mesto[data-mesto]").each(function () {
+      var lineMesto = $(this);
+      var isFree = lineMesto
+        .find(".mesto-status")
+        .hasClass("mesto-status-svob");
+      if (isFree) {
+        return;
+      }
+      var mestoN = lineMesto.attr("data-mesto");
+      var name = (lineMesto.find(".mestoFio").val() || "").trim();
+      list.push({ n: mestoN, name: name });
+    });
+    list.sort(function (a, b) {
+      return Number(a.n) - Number(b.n);
+    });
+    return list;
+  }
 
-    // Размер холста берём из реальных пропорций текущей картинки —
-    // у разных профилей автобуса разное соотношение сторон
-    // (например, из-за легенды под схемой), нельзя жёстко фиксировать 1550x642.
-    canvas.width = img.naturalWidth || 1550;
-    canvas.height = img.naturalHeight || 642;
-    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob((blob) => {
-      navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-    }, "image/png");
+  // Строит итоговый canvas для копирования/скачивания: сама картинка схемы
+  // автобуса, и (если отмечен чекбокс) список "место — ФИО" под ней —
+  // это позволяет отправить одну картинку, где видно, кто на каком месте.
+  function buildExportCanvas() {
+    var img = $("img")[0];
+    var baseWidth = img.naturalWidth || 1550;
+    var baseHeight = img.naturalHeight || 642;
+    var includeFio = $("#includeFioOnImage").is(":checked");
+    var seats = includeFio ? collectOccupiedSeatsWithFio() : [];
+
+    var canvas = document.createElement("canvas");
+    if (seats.length === 0) {
+      canvas.width = baseWidth;
+      canvas.height = baseHeight;
+      canvas
+        .getContext("2d")
+        .drawImage(img, 0, 0, canvas.width, canvas.height);
+      return Promise.resolve(canvas);
+    }
+
+    // Раскладываем список в несколько колонок, чтобы длинная поездка с
+    // многими пассажирами не растягивала картинку в узкую высокую полосу.
+    var fontSize = Math.max(20, Math.round(baseWidth / 62));
+    var lineHeight = Math.round(fontSize * 1.5);
+    var padding = Math.round(fontSize);
+    var maxColumnWidth = Math.round(baseWidth / 2.2);
+    var columns = baseWidth > 700 && seats.length > 12 ? 2 : 1;
+    var rowsPerColumn = Math.ceil(seats.length / columns);
+    var listHeight = padding * 2 + rowsPerColumn * lineHeight;
+
+    canvas.width = baseWidth;
+    canvas.height = baseHeight + listHeight;
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, baseWidth, baseHeight);
+
+    ctx.font = "bold " + fontSize + "px Arial, sans-serif";
+    ctx.fillStyle = "#222222";
+    ctx.textBaseline = "top";
+    seats.forEach(function (seat, i) {
+      var col = Math.floor(i / rowsPerColumn);
+      var row = i % rowsPerColumn;
+      var x = padding + col * maxColumnWidth;
+      var y = baseHeight + padding + row * lineHeight;
+      var label =
+        "Место " + seat.n + ": " + (seat.name || "(ФИО не указано)");
+      ctx.fillText(label, x, y, maxColumnWidth - padding);
+    });
+
+    return Promise.resolve(canvas);
+  }
+
+  $(document).on("click", ".copy", function (e) {
+    buildExportCanvas().then(function (canvas) {
+      canvas.toBlob((blob) => {
+        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      }, "image/png");
+    });
   });
   $(document).on("click", ".copyClose", function (e) {
-    const canvas = document.createElement("canvas");
-    var img = $("img")[0];
+    buildExportCanvas().then(function (canvas) {
+      canvas.toBlob((blob) => {
+        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
 
-    canvas.width = img.naturalWidth || 1550;
-    canvas.height = img.naturalHeight || 642;
-    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    canvas.toBlob((blob) => {
-      navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-
-      setTimeout(function () {
-        open(location, "_self").close();
-      }, 50);
-    }, "image/png");
+        setTimeout(function () {
+          open(location, "_self").close();
+        }, 50);
+      }, "image/png");
+    });
   });
 
   $(document).on("click", ".save", function (e) {
-    var data = $("img").attr("src");
-    console.dir(data);
-
-    var a = document.createElement("a");
-    a.href = data;
-    a.download = "Свободные места.png";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    buildExportCanvas().then(function (canvas) {
+      var a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = "Свободные места.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
   });
 
   $(document).on("change", "#mestaZanyatyInput", function () {
