@@ -624,7 +624,7 @@ $(document).ready(function () {
 
     // Раскладываем список в несколько колонок, чтобы длинная поездка с
     // многими пассажирами не растягивала картинку в узкую высокую полосу.
-    var fontSize = Math.max(20, Math.round(baseWidth / 62));
+    var fontSize = Math.max(32, Math.round(baseWidth / 38));
     var lineHeight = Math.round(fontSize * 1.5);
     var padding = Math.round(fontSize);
     var maxColumnWidth = Math.round(baseWidth / 2.2);
