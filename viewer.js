@@ -303,7 +303,7 @@ $(document).ready(function () {
 
   $(document).on(
     "dblclick",
-    ".generic-seat:not(.generic-driver) rect",
+    ".generic-seat:not(.generic-driver) .seat-back, .generic-seat:not(.generic-driver) .seat-cushion",
     function () {
       var mestoN = $(this).closest(".generic-seat").attr("data-seat");
       var lineMesto = $('.line-mesto[data-mesto="' + mestoN + '"]');
