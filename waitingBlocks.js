@@ -10,12 +10,26 @@ $(function () {
   var STORAGE_KEY = "waitingBlocksCalc_v1";
   var rowCounter = 0;
 
-  var parseLateness = LatenessUtils.parseLateness;
   var formatMinutes = LatenessUtils.formatMinutes;
   var formatMoney = LatenessUtils.formatMoney;
   var distributeAmount = LatenessUtils.distributeAmount;
 
   var lastResultText = "";
+
+  // Шаг изменения опоздания — берём текущую длительность отрезка ожидания,
+  // чтобы администратор округлял справедливо, по тем же отрезкам.
+  function currentStep() {
+    var v = Number(String($("#blockLength").val() || "").replace(",", "."));
+    return v > 0 ? v : 30;
+  }
+
+  function renderLateValue(tr) {
+    var minutes = Number(tr.find(".latecomerLate").data("minutes")) || 0;
+    tr.find(".lateValue").text(
+      minutes > 0 ? formatMinutes(minutes) : "не опоздал",
+    );
+    tr.find(".lateMinus").prop("disabled", minutes <= 0);
+  }
 
   // --- Строки таблицы ---
   function addRow(data) {
@@ -27,14 +41,21 @@ $(function () {
         '">' +
         '<td class="rowNum"></td>' +
         '<td><input type="text" class="latecomerName" placeholder="Например: Иванов И.И."></td>' +
-        '<td><input type="text" class="latecomerLate" placeholder="20 или 1:20"></td>' +
+        '<td>' +
+        '<span class="latecomerLate lateStepper">' +
+        '<button type="button" class="lateMinus" title="Уменьшить опоздание">−</button>' +
+        '<span class="lateValue">не опоздал</span>' +
+        '<button type="button" class="latePlus" title="Увеличить опоздание">+</button>' +
+        "</span>" +
+        "</td>" +
         '<td class="blocksCell">—</td>' +
         '<td class="payCell">—</td>' +
         '<td><button type="button" class="removeRow" title="Удалить">✕</button></td>' +
         "</tr>",
     );
     tr.find(".latecomerName").val(data.name || "");
-    tr.find(".latecomerLate").val(data.late || "");
+    tr.find(".latecomerLate").data("minutes", Number(data.minutes) || 0);
+    renderLateValue(tr);
     $("#latecomersBody").append(tr);
     renumberRows();
   }
@@ -51,12 +72,11 @@ $(function () {
     var rows = [];
     $("#latecomersBody .latecomerRow").each(function () {
       var tr = $(this);
-      var lateStr = tr.find(".latecomerLate").val();
+      var minutes = Number(tr.find(".latecomerLate").data("minutes")) || 0;
       rows.push({
         tr: tr,
         name: tr.find(".latecomerName").val(),
-        lateStr: lateStr,
-        minutes: parseLateness(lateStr),
+        minutes: minutes,
       });
     });
     return rows;
@@ -212,7 +232,7 @@ $(function () {
   function saveState() {
     try {
       var rows = collectRows().map(function (r) {
-        return { name: r.name, late: r.lateStr };
+        return { name: r.name, minutes: r.minutes };
       });
       var state = {
         rate: $("#blockRate").val(),
@@ -248,7 +268,12 @@ $(function () {
       $("#blockRate").val(state.rate || "500");
       $("#blockLength").val(state.blockLength || "30");
       state.rows.forEach(function (r) {
-        addRow(r);
+        // Совместимость со старым форматом (текстовое поле "late").
+        var minutes =
+          typeof r.minutes === "number"
+            ? r.minutes
+            : LatenessUtils.parseLateness(r.late || "");
+        addRow({ name: r.name, minutes: minutes });
       });
     } else {
       $("#blockRate").val("500");
@@ -266,6 +291,27 @@ $(function () {
   $(document).on("click", ".removeRow", function () {
     $(this).closest(".latecomerRow").remove();
     renumberRows();
+    saveState();
+  });
+
+  $(document).on("click", ".latePlus", function () {
+    var tr = $(this).closest(".latecomerRow");
+    var late = tr.find(".latecomerLate");
+    var minutes = (Number(late.data("minutes")) || 0) + currentStep();
+    late.data("minutes", minutes);
+    renderLateValue(tr);
+    saveState();
+  });
+
+  $(document).on("click", ".lateMinus", function () {
+    var tr = $(this).closest(".latecomerRow");
+    var late = tr.find(".latecomerLate");
+    var minutes = Math.max(
+      0,
+      (Number(late.data("minutes")) || 0) - currentStep(),
+    );
+    late.data("minutes", minutes);
+    renderLateValue(tr);
     saveState();
   });
 
@@ -289,7 +335,7 @@ $(function () {
 
   $(document).on(
     "input change",
-    "#blockRate, #blockLength, .latecomerName, .latecomerLate",
+    "#blockRate, #blockLength, .latecomerName",
     saveState,
   );
 

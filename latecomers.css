@@ -48,8 +48,38 @@ body {
   width: 100%;
 }
 
-.latecomerLate {
+input.latecomerLate {
   width: 6em;
+}
+
+.lateStepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.lateStepper button {
+  width: 1.8em;
+  height: 1.8em;
+  line-height: 1;
+  font-size: 1.1em;
+  font-weight: 700;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+.lateStepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.lateStepper .lateValue {
+  min-width: 5em;
+  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .shareCell,
@@ -113,7 +143,7 @@ body {
     font-size: 0.9em;
   }
 
-  .latecomerLate {
+  input.latecomerLate {
     width: 4.5em;
   }
 }
