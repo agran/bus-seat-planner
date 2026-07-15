@@ -139,3 +139,55 @@ body {
 #saveStatus.error {
   color: #a33a34;
 }
+
+/* --- Мобильная адаптация --- */
+/* Сетка редактора (#gridDesigner) может быть шире экрана телефона —
+   вместо того чтобы ломать вёрстку всей страницы, даём ей собственный
+   горизонтальный скролл. Остальные элементы увеличиваем до удобного
+   для тапа размера и убираем десктопные компоновки в один ряд. */
+@media (max-width: 700px) {
+  button,
+  select,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"] {
+    min-height: 2.75em;
+    font-size: 1.05em;
+    padding: 0.3em 0.5em;
+  }
+
+  .panel label {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 0.5em;
+  }
+
+  .panel select,
+  .panel input[type="text"],
+  .panel input[type="number"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 0.25em;
+    box-sizing: border-box;
+  }
+
+  #cloudAuthPanel input {
+    width: auto;
+    flex: 1 1 auto;
+  }
+
+  #gridDesigner {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .grid-cell {
+    width: 3.4em;
+    height: 3.4em;
+    flex: 0 0 auto;
+  }
+}

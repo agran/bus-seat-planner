@@ -15,7 +15,7 @@
 
     <link rel="stylesheet" href="latecomers.css?1" />
   </head>
-  <body>
+  <body class="page-waitingblocks">
     <h2>Расчёт доплаты за опоздание — по отрезкам ожидания</h2>
     <p>
       Водитель берёт доплату за каждый полный или неполный отрезок ожидания
@@ -76,16 +76,18 @@
 
     <div id="breakdownPanel" class="panel" style="display: none">
       <h3>Разбивка по отрезкам</h3>
-      <table id="breakdownTable">
-        <thead>
-          <tr>
-            <th>Отрезок</th>
-            <th>Стоимость отрезка</th>
-            <th>Кто и сколько платит</th>
-          </tr>
-        </thead>
-        <tbody id="breakdownBody"></tbody>
-      </table>
+      <div class="tableScroll">
+        <table id="breakdownTable">
+          <thead>
+            <tr>
+              <th>Отрезок</th>
+              <th>Стоимость отрезка</th>
+              <th>Кто и сколько платит</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="panel" id="copyPanel" style="display: none">

@@ -164,6 +164,10 @@ img {
   text-align: right;
 }
 
+.clearButtonRight {
+  float: right;
+}
+
 .mestButton {
   margin-left: 0.25em;
   margin-top: 0.333em;
@@ -209,6 +213,32 @@ img {
     display: block;
     text-align: left;
     margin-bottom: 0.2em;
+  }
+
+  /* Ряды с полем ввода и кнопками (профиль/поездка/списки мест) на
+     десктопе — просто inline-поток, на телефоне превращаем в гибкую
+     раскладку с переносом, чтобы кнопки не наезжали друг на друга и
+     на длинный select. */
+  .parentInput {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35em;
+  }
+
+  #profileSelect,
+  #tripSelect,
+  #mestaSvobodnInput,
+  #mestaZanyatyInput {
+    width: 100%;
+    max-width: 100%;
+    flex: 1 1 100%;
+    box-sizing: border-box;
+  }
+
+  .clearButtonRight {
+    float: none;
+    margin-left: auto;
   }
 
   .bZan,

@@ -137,13 +137,148 @@ input.latecomerLate {
   font-weight: 700;
 }
 
+.tableScroll {
+  max-width: 46em;
+  overflow-x: auto;
+}
+
+/* --- Мобильная адаптация --- */
+/* На телефоне десктопная таблица с шестью колонками не помещается на
+   экран и вынуждает либо мелкий шрифт, либо горизонтальный скролл во
+   время ввода — оба варианта неудобны. Поэтому строки таблицы
+   превращаем в карточки: каждый турист — отдельный блок, где поля
+   идут друг под другом на всю ширину, а подписи для компактных ячеек
+   (доля/отрезки, к оплате) добавляются псевдоэлементом ::before. */
 @media (max-width: 700px) {
+  button,
+  select,
+  input[type="text"] {
+    min-height: 2.75em;
+    font-size: 1.05em;
+    padding: 0.3em 0.5em;
+  }
+
+  .panel label {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 0.5em;
+  }
+
+  .panel select,
+  .panel input[type="text"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 0.25em;
+    box-sizing: border-box;
+  }
+
   #latecomersTable,
+  #latecomersTable thead,
+  #latecomersTable tbody,
+  #latecomersTable th,
+  #latecomersTable td,
+  #latecomersTable tr {
+    display: block;
+    width: auto;
+  }
+
   #latecomersTable thead {
-    font-size: 0.9em;
+    display: none;
+  }
+
+  #latecomersTable {
+    max-width: 100%;
+  }
+
+  .latecomerRow {
+    position: relative;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 0.6em 2.4em 0.6em 0.6em;
+    margin-bottom: 0.6em;
+    background: #fafafa;
+  }
+
+  .latecomerRow td {
+    border: none;
+    padding: 0.2em 0;
+  }
+
+  .latecomerRow .rowNum {
+    position: absolute;
+    top: 0.5em;
+    left: 0.6em;
+    font-weight: 700;
+    color: #888;
+  }
+
+  .latecomerRow .rowNum::after {
+    content: ".";
+  }
+
+  .latecomerRow td:nth-child(2) {
+    padding-left: 1.8em;
+  }
+
+  .latecomerRow td:nth-child(3) {
+    padding-top: 0.3em;
   }
 
   input.latecomerLate {
-    width: 4.5em;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .lateStepper {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .lateStepper button {
+    width: 2.5em;
+    height: 2.5em;
+    font-size: 1.3em;
+  }
+
+  .lateStepper .lateValue {
+    font-size: 1.05em;
+  }
+
+  .shareCell,
+  .payCell {
+    font-size: 1.05em;
+  }
+
+  .shareCell::before {
+    content: "Доля: ";
+    font-weight: 400;
+    color: #666;
+  }
+
+  .blocksCell::before {
+    content: "Отрезков: ";
+    font-weight: 400;
+    color: #666;
+  }
+
+  .payCell::before {
+    content: "К оплате: ";
+    font-weight: 400;
+    color: #666;
+  }
+
+  .latecomerRow .removeRow {
+    position: absolute;
+    top: 0.4em;
+    right: 0.4em;
+    width: 2em;
+    height: 2em;
+    font-size: 1.3em;
+  }
+
+  #breakdownTable th,
+  #breakdownTable td {
+    white-space: nowrap;
   }
 }
