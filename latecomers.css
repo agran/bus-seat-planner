@@ -206,19 +206,16 @@ input.latecomerLate {
   }
 
   .latecomerRow .rowNum {
-    position: absolute;
-    top: 0.5em;
-    left: 0.6em;
+    display: block;
     font-weight: 700;
     color: #888;
+    margin-bottom: 0.2em;
+    padding-right: 2.4em;
+    box-sizing: border-box;
   }
 
   .latecomerRow .rowNum::after {
     content: ".";
-  }
-
-  .latecomerRow td:nth-child(2) {
-    padding-left: 1.8em;
   }
 
   .latecomerRow td:nth-child(3) {
