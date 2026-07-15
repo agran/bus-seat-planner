@@ -1,0 +1,102 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 1em;
+}
+
+.panel {
+  margin: 0.75em 0;
+}
+
+.panel label {
+  margin-right: 1em;
+}
+
+.hint {
+  color: #555;
+  font-size: 0.9em;
+}
+
+.hint code {
+  background: #f0f0f0;
+  padding: 0.1em 0.3em;
+  border-radius: 0.2em;
+}
+
+#latecomersTable {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 46em;
+}
+
+#latecomersTable th,
+#latecomersTable td {
+  border: 1px solid #ccc;
+  padding: 0.35em 0.5em;
+  text-align: left;
+}
+
+#latecomersTable th {
+  background: #eef1f7;
+}
+
+#latecomersTable input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.latecomerName {
+  width: 100%;
+}
+
+.latecomerLate {
+  width: 6em;
+}
+
+.shareCell,
+.payCell {
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.removeRow {
+  color: #a33a34;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.primary {
+  font-weight: 700;
+}
+
+#resultSummary {
+  background: #eef7ee;
+  border: 1px solid #bcd8bc;
+  border-radius: 4px;
+  padding: 0.6em 0.9em;
+  max-width: 46em;
+}
+
+#resultSummary .warn {
+  color: #a33a34;
+  font-weight: 700;
+}
+
+#copyStatus {
+  margin-left: 0.5em;
+  color: green;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  #latecomersTable,
+  #latecomersTable thead {
+    font-size: 0.9em;
+  }
+
+  .latecomerLate {
+    width: 4.5em;
+  }
+}

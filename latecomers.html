@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Доплата за опоздание к автобусу</title>
+
+    <meta
+      name="viewport"
+      content="minimum-scale=0, user-scalable=yes, width=device-width, height=device-height, viewport-fit=cover"
+    />
+    <meta charset="UTF-8" />
+
+    <script src="jquery-3.7.1.min.js"></script>
+    <script src="latecomers.js?1"></script>
+
+    <link rel="stylesheet" href="latecomers.css?1" />
+  </head>
+  <body>
+    <h2>Расчёт доплаты за опоздание к отправлению автобуса</h2>
+    <p>
+      Если из-за опоздавших туристов пришлось доплатить водителю (например, за
+      задержку или ожидание), эта страница поможет справедливо разделить сумму
+      доплаты между опоздавшими: чем больше опоздал турист, тем бо́льшую долю
+      доплаты он берёт на себя. Кто не опаздывал — ничего не платит.
+    </p>
+
+    <div class="panel">
+      <label
+        >Сумма доплаты водителю (руб.):
+        <input
+          type="text"
+          id="totalOverpay"
+          size="10"
+          placeholder="например 1000"
+        />
+      </label>
+      <label
+        >Строгость распределения:
+        <select id="weightExponent">
+          <option value="1" selected>пропорционально минутам опоздания</option>
+          <option value="2">
+            строже — квадрат минут (сильно опоздавшие платят намного больше)
+          </option>
+          <option value="3">
+            очень строго — куб минут (почти всё платит тот, кто опоздал больше
+            всех)
+          </option>
+        </select>
+      </label>
+    </div>
+
+    <p class="hint">
+      Опоздание можно вводить как число минут (например
+      <code>20</code>), как часы:минуты (<code>1:20</code>) или в виде
+      <code>1ч20м</code>.
+    </p>
+
+    <table id="latecomersTable">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>ФИО / имя (необязательно)</th>
+          <th>Опоздание</th>
+          <th>Доля</th>
+          <th>К оплате</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="latecomersBody"></tbody>
+    </table>
+
+    <div class="panel">
+      <button id="btnAddRow">+ Добавить туриста</button>
+      <button id="btnCalculate" class="primary">Рассчитать</button>
+      <button id="btnClearRows">Очистить всё</button>
+    </div>
+
+    <div id="resultSummary" class="panel" style="display: none"></div>
+
+    <div class="panel" id="copyPanel" style="display: none">
+      <button id="btnCopyResult">Копировать результат текстом</button>
+      <span id="copyStatus"></span>
+    </div>
+
+    <br />
+    <a href="index.html">← Вернуться на главную страницу</a>
+  </body>
+</html>
