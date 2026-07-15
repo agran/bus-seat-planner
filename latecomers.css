@@ -67,6 +67,23 @@ body {
   line-height: 1;
 }
 
+#breakdownTable {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 46em;
+}
+
+#breakdownTable th,
+#breakdownTable td {
+  border: 1px solid #ccc;
+  padding: 0.35em 0.5em;
+  text-align: left;
+}
+
+#breakdownTable th {
+  background: #eef1f7;
+}
+
 .primary {
   font-weight: 700;
 }

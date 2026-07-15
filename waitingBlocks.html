@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Доплата за опоздание — по отрезкам ожидания</title>
+
+    <meta
+      name="viewport"
+      content="minimum-scale=0, user-scalable=yes, width=device-width, height=device-height, viewport-fit=cover"
+    />
+    <meta charset="UTF-8" />
+
+    <script src="jquery-3.7.1.min.js"></script>
+    <script src="latenessUtils.js?1"></script>
+    <script src="waitingBlocks.js?1"></script>
+
+    <link rel="stylesheet" href="latecomers.css?1" />
+  </head>
+  <body>
+    <h2>Расчёт доплаты за опоздание — по отрезкам ожидания</h2>
+    <p>
+      Водитель берёт доплату за каждый полный или неполный отрезок ожидания
+      (например 500 руб. за каждые 30 минут). Отрезки идут по очереди: первый
+      отрезок оплачивают все, кто опоздал хотя бы на минуту, второй — только те,
+      кто опоздал больше, чем длится один отрезок, и так далее. Внутри каждого
+      отрезка стоимость делится поровну между всеми, кто в нём ещё задерживал
+      автобус.
+    </p>
+    <p class="hint">
+      Например, при отрезке 30 минут и ставке 500 руб.: если трое опоздали по 25
+      минут — они втроём делят 500 руб. за один отрезок (≈167 руб. каждый). Если
+      один из них опоздал на 55 минут — первые 30 минут он делит с остальными, а
+      вторые 30 минут (500 руб.) платит один, потому что только он продолжал
+      задерживать автобус.
+    </p>
+
+    <div class="panel">
+      <label
+        >Ставка за отрезок (руб.):
+        <input type="text" id="blockRate" size="8" placeholder="500" />
+      </label>
+      <label
+        >Длительность отрезка (мин.):
+        <input type="text" id="blockLength" size="6" placeholder="30" />
+      </label>
+    </div>
+
+    <p class="hint">
+      Опоздание можно вводить как число минут (например
+      <code>20</code>), как часы:минуты (<code>1:20</code>) или в виде
+      <code>1ч20м</code>.
+    </p>
+
+    <table id="latecomersTable">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>ФИО / имя (необязательно)</th>
+          <th>Опоздание</th>
+          <th>Отрезков</th>
+          <th>К оплате</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="latecomersBody"></tbody>
+    </table>
+
+    <div class="panel">
+      <button id="btnAddRow">+ Добавить туриста</button>
+      <button id="btnCalculate" class="primary">Рассчитать</button>
+      <button id="btnClearRows">Очистить всё</button>
+    </div>
+
+    <div id="resultSummary" class="panel" style="display: none"></div>
+
+    <div id="breakdownPanel" class="panel" style="display: none">
+      <h3>Разбивка по отрезкам</h3>
+      <table id="breakdownTable">
+        <thead>
+          <tr>
+            <th>Отрезок</th>
+            <th>Кто участвует</th>
+            <th>Стоимость отрезка</th>
+            <th>С каждого</th>
+          </tr>
+        </thead>
+        <tbody id="breakdownBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel" id="copyPanel" style="display: none">
+      <button id="btnCopyResult">Копировать результат текстом</button>
+      <span id="copyStatus"></span>
+    </div>
+
+    <br />
+    <a href="index.html">← Вернуться на главную страницу</a>
+    ·
+    <a href="latecomers.html"
+      >Другой вариант расчёта: пропорционально минутам →</a
+    >
+  </body>
+</html>
