@@ -12,7 +12,7 @@ $(function () {
 
   var formatMinutes = LatenessUtils.formatMinutes;
   var formatMoney = LatenessUtils.formatMoney;
-  var distributeAmount = LatenessUtils.distributeAmount;
+  var distributeAmountRounded = LatenessUtils.distributeAmountRounded;
 
   var lastResultText = "";
 
@@ -152,7 +152,10 @@ $(function () {
       var weights = participantIdx.map(function () {
         return 1;
       });
-      var shares = distributeAmount(rate, weights);
+      var priorities = participantIdx.map(function (i) {
+        return rows[i].minutes;
+      });
+      var shares = distributeAmountRounded(rate, weights, priorities);
       participantIdx.forEach(function (rowIdx, j) {
         pays[rowIdx] += shares[j];
       });
@@ -160,16 +163,15 @@ $(function () {
 
       var rangeStart = (k - 1) * blockLen + 1;
       var rangeEnd = k * blockLen;
-      var names = participantIdx.map(function (i) {
+      var details = participantIdx.map(function (i, j) {
         var r = rows[i];
-        return r.name && r.name.trim() ? r.name.trim() : "Место " + (i + 1);
+        var label = r.name && r.name.trim() ? r.name.trim() : "Место " + (i + 1);
+        return label + " — " + formatMoney(shares[j]);
       });
       breakdownRows.push({
         label: "Отрезок " + k + " (" + rangeStart + "–" + rangeEnd + " мин.)",
-        names: names.join(", "),
         cost: rate,
-        each: shares[0],
-        count: participantIdx.length,
+        details: details.join(", "),
       });
     }
 
@@ -211,11 +213,10 @@ $(function () {
     );
 
     breakdownRows.forEach(function (b) {
-      var tr = $("<tr><td></td><td></td><td></td><td></td></tr>");
+      var tr = $("<tr><td></td><td></td><td></td></tr>");
       tr.find("td:eq(0)").text(b.label);
-      tr.find("td:eq(1)").text(b.names);
-      tr.find("td:eq(2)").text(formatMoney(b.cost));
-      tr.find("td:eq(3)").text(formatMoney(b.each) + " (÷" + b.count + ")");
+      tr.find("td:eq(1)").text(formatMoney(b.cost));
+      tr.find("td:eq(2)").text(b.details);
       $("#breakdownBody").append(tr);
     });
     $("#breakdownPanel").show();

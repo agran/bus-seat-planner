@@ -88,10 +88,95 @@ var LatenessUtils = (function () {
     });
   }
 
+  // --- Распределение суммы по весам, округляя каждую долю до десятков
+  //     рублей ---
+  // Раздаём деньги "укрупнёнными" единицами (по умолчанию 10 руб.) методом
+  // наибольшего остатка, как в distributeAmount, но в единицах округления,
+  // а не в копейках. Если после этого остаётся мелкий "хвост" (когда сама
+  // сумма не делится на единицу округления без остатка), он целиком
+  // достаётся участнику с наивысшим приоритетом (обычно — самому опоздавшему),
+  // чтобы у остальных суммы оставались круглыми. При равенстве дробных
+  // остатков лишняя единица округления также достаётся участнику с более
+  // высоким приоритетом — так округление "в пользу" идёт тем, кто опоздал
+  // меньше (у них остаётся более выгодное — округлённое вниз — значение).
+  function distributeAmountRounded(totalRub, weights, priorities, roundTo) {
+    var unit = roundTo > 0 ? roundTo : 10;
+    var unitCents = Math.round(unit * 100);
+    var totalCents = Math.round(totalRub * 100);
+    var sumWeights = weights.reduce(function (a, b) {
+      return a + b;
+    }, 0);
+    var n = weights.length;
+
+    if (sumWeights <= 0 || totalCents <= 0) {
+      return weights.map(function () {
+        return 0;
+      });
+    }
+
+    priorities =
+      priorities && priorities.length === n
+        ? priorities
+        : weights.map(function () {
+            return 0;
+          });
+
+    var rawUnits = weights.map(function (w) {
+      return (totalCents * w) / sumWeights / unitCents;
+    });
+    var flooredUnits = rawUnits.map(Math.floor);
+    var baseCents = flooredUnits.reduce(function (a, b) {
+      return a + b;
+    }, 0);
+    var remainderCents = totalCents - baseCents * unitCents;
+    var extraUnits = Math.floor(remainderCents / unitCents);
+    var leftoverCents = remainderCents - extraUnits * unitCents;
+
+    var order = rawUnits
+      .map(function (v, i) {
+        return { i: i, frac: v - flooredUnits[i], priority: priorities[i] };
+      })
+      .sort(function (a, b) {
+        if (b.frac !== a.frac) {
+          return b.frac - a.frac;
+        }
+        // При равных дробных остатках лишнюю "десятку" отдаём более
+        // опоздавшему (выше приоритет), чтобы у менее опоздавших
+        // сохранился более выгодный округлённый вниз результат.
+        return b.priority - a.priority;
+      });
+
+    var unitsResult = flooredUnits.slice();
+    for (var k = 0; k < extraUnits && k < order.length; k++) {
+      unitsResult[order[k].i]++;
+    }
+
+    var cents = unitsResult.map(function (u) {
+      return u * unitCents;
+    });
+
+    // Неделимый "хвост" (меньше единицы округления) целиком достаётся
+    // участнику с наивысшим приоритетом — обычно самому опоздавшему.
+    if (leftoverCents > 0) {
+      var maxIdx = 0;
+      for (var i = 1; i < n; i++) {
+        if (priorities[i] > priorities[maxIdx]) {
+          maxIdx = i;
+        }
+      }
+      cents[maxIdx] += leftoverCents;
+    }
+
+    return cents.map(function (c) {
+      return c / 100;
+    });
+  }
+
   return {
     parseLateness: parseLateness,
     formatMinutes: formatMinutes,
     formatMoney: formatMoney,
     distributeAmount: distributeAmount,
+    distributeAmountRounded: distributeAmountRounded,
   };
 })();

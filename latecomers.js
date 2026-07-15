@@ -11,7 +11,7 @@ $(function () {
   var parseLateness = LatenessUtils.parseLateness;
   var formatMinutes = LatenessUtils.formatMinutes;
   var formatMoney = LatenessUtils.formatMoney;
-  var distributeAmount = LatenessUtils.distributeAmount;
+  var distributeAmountRounded = LatenessUtils.distributeAmountRounded;
 
   // --- Строки таблицы ---
   function addRow(data) {
@@ -99,7 +99,13 @@ $(function () {
       return;
     }
 
-    var pays = distributeAmount(total, weights);
+    var pays = distributeAmountRounded(
+      total,
+      weights,
+      rows.map(function (r) {
+        return r.minutes;
+      }),
+    );
 
     var totalMinutes = 0;
     var totalPaid = 0;
