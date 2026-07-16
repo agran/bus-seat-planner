@@ -1,0 +1,27 @@
+{
+  "id": "/waitingBlocks.html",
+  "name": "Доплата за опоздание — по отрезкам",
+  "short_name": "Опоздания (отрезки)",
+  "description": "Расчёт доплаты водителю за опоздание туристов по 30-минутным отрезкам ожидания. Работает без интернета.",
+  "start_url": "./waitingBlocks.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f6fa",
+  "theme_color": "#2563eb",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "icons/waitingblocks-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/waitingblocks-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

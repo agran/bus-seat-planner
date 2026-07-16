@@ -9,6 +9,18 @@
     />
     <meta charset="UTF-8" />
 
+    <link rel="manifest" href="manifest-waitingblocks.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Опоздания (отрезки)" />
+    <link rel="icon" href="icons/waitingblocks-192.png" />
+    <link rel="apple-touch-icon" href="icons/waitingblocks-192.png" />
+
     <script src="jquery-3.7.1.min.js"></script>
     <script src="latenessUtils.js?1"></script>
     <script src="waitingBlocks.js?1"></script>
@@ -48,8 +60,8 @@
       Опоздание отмечается кнопками <code>−</code>/<code>+</code> с шагом,
       равным длительности отрезка — точное время в минутах не нужно, достаточно
       справедливо округлить. Суммы к оплате также округляются до десятков
-      рублей: "лишние" рубли, если округлить точно не получается, достаются
-      тем, кто опоздал больше.
+      рублей: "лишние" рубли, если округлить точно не получается, достаются тем,
+      кто опоздал больше.
     </p>
 
     <table id="latecomersTable">
@@ -101,5 +113,19 @@
     <a href="latecomers.html"
       >Другой вариант расчёта: пропорционально минутам →</a
     >
+
+    <script>
+      // Регистрируем service worker, чтобы страницу можно было открыть без интернета
+      // (после первого захода все нужные файлы сохраняются в кэше браузера).
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("sw-waitingblocks.js")
+            .catch(function (err) {
+              console.warn("Не удалось зарегистрировать service worker:", err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
