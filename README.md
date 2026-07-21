@@ -59,4 +59,4 @@ online demo: https://agran.github.io/bus-seat-planner/
 
 ©️ agran@agran.net
 
-<img width="1882" height="1492" alt="image" src="https://github.com/user-attachments/assets/0f23e39f-275f-4037-b1da-f3ff6b8cc01e" />
+<img width="1528" height="1792" alt="image" src="https://github.com/user-attachments/assets/c605a955-1576-4ccc-a1d9-ae762bb1908b" />
