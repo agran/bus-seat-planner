@@ -328,7 +328,7 @@ var SeatProfiles = (function () {
     ".generic-guide .seat-text{font-size:38px;}" +
     ".generic-driver .seat-text{font-size:30px;}" +
     ".seat-subtext{fill:#ffffff;font-size:20px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;opacity:0.85;}" +
-    ".door-floor{fill:#f0f0f0;stroke:#898989;stroke-width:2.5;}" +
+    ".door-floor{fill:#ffffff;}" +
     ".door-text{fill:#51677a;font-family:Arial,sans-serif;font-size:20px;font-weight:700;pointer-events:none;user-select:none;}" +
     ".legend-label-text{fill:#ffffff;font-size:36px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;}";
 
@@ -408,29 +408,51 @@ var SeatProfiles = (function () {
     return g;
   }
 
-  // Дверь — светлый проём на месте ячейки сетки с подписью.
-  function buildDoorGroup(x, y, w, h) {
-    var g = el("g", { class: "generic-door", "data-door": "true" });
-    g.appendChild(
-      el("rect", {
-        class: "door-floor",
-        x: x + 10,
-        y: y + 6,
-        width: w - 20,
-        height: h - 12,
-        rx: 12,
-        ry: 12,
-      }),
-    );
-    var text = el("text", {
-      class: "door-text",
-      x: x + w / 2,
-      y: y + h / 2,
-      "text-anchor": "middle",
-      "dominant-baseline": "central",
+  // Дверь — белый проём от ячейки двери к ближайшему борту (side:
+  // "top"/"bottom", edgeY — граница серой зоны салона). В месте примыкания
+  // к стенке — внешнее скругление (галтель): боковые стороны проёма плавно
+  // расходятся дугами наружу и сливаются с линией стенки, будто стенка
+  // салона вдаётся в салон у двери. Край проёма заканчивается ровно на
+  // границе салона, поэтому на белом борту кузова дверь не видна.
+  function buildDoorGroup(x, y, w, h, side, edgeY) {
+    var g = el("g", {
+      class: "generic-door generic-door-" + side,
+      "data-door": "true",
     });
-    text.textContent = "Дверь";
-    g.appendChild(text);
+    // Ширина проёма — как у места целиком (спинка + сидушка).
+    var x0 = x;
+    var x1 = x + w;
+    var cornerR = 20; // скругление углов у ячейки — как у сидушек
+    var filletR = 14; // радиус внешнего скругления у стенки
+    var d;
+    if (side === "bottom") {
+      var top = y + 6;
+      d =
+        "M " + (x0 + cornerR) + " " + top +
+        " H " + (x1 - cornerR) +
+        " A " + cornerR + " " + cornerR + " 0 0 1 " + x1 + " " + (top + cornerR) +
+        " V " + (edgeY - filletR) +
+        " A " + filletR + " " + filletR + " 0 0 0 " + (x1 + filletR) + " " + edgeY +
+        " H " + (x0 - filletR) +
+        " A " + filletR + " " + filletR + " 0 0 0 " + x0 + " " + (edgeY - filletR) +
+        " V " + (top + cornerR) +
+        " A " + cornerR + " " + cornerR + " 0 0 1 " + (x0 + cornerR) + " " + top +
+        " Z";
+    } else {
+      var bottom = y + h - 6;
+      d =
+        "M " + (x0 + cornerR) + " " + bottom +
+        " H " + (x1 - cornerR) +
+        " A " + cornerR + " " + cornerR + " 0 0 0 " + x1 + " " + (bottom - cornerR) +
+        " V " + (edgeY + filletR) +
+        " A " + filletR + " " + filletR + " 0 0 1 " + (x1 + filletR) + " " + edgeY +
+        " H " + (x0 - filletR) +
+        " A " + filletR + " " + filletR + " 0 0 1 " + x0 + " " + (edgeY + filletR) +
+        " V " + (bottom - cornerR) +
+        " A " + cornerR + " " + cornerR + " 0 0 0 " + (x0 + cornerR) + " " + bottom +
+        " Z";
+    }
+    g.appendChild(el("path", { class: "door-floor", d: d }));
     return g;
   }
 
@@ -628,7 +650,19 @@ var SeatProfiles = (function () {
         var y = seatY0 + (r - bounds.minRow) * (SEAT_DH + ROW_GAP);
 
         if (cell.type === "door") {
-          seatsLayer.appendChild(buildDoorGroup(x, y, SEAT_DW, SEAT_DH));
+          // Дверь примыкает к ближайшему борту: если ячейка ближе к верхнему
+          // ряду — проём тянется вверх, иначе — вниз. Край — граница серой
+          // зоны салона (80.56 / 550.56 в нативных координатах кузова).
+          var distanceToTop = r - bounds.minRow;
+          var distanceToBottom = bounds.maxRow - r;
+          var doorSide = distanceToTop <= distanceToBottom ? "top" : "bottom";
+          var salonEdgeY =
+            doorSide === "bottom"
+              ? busY0 + 550.56 * busSY
+              : busY0 + 80.56 * busSY;
+          seatsLayer.appendChild(
+            buildDoorGroup(x, y, SEAT_DW, SEAT_DH, doorSide, salonEdgeY),
+          );
           continue;
         }
         if (cell.type === "guide") {
