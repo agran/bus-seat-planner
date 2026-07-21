@@ -231,55 +231,106 @@ var SeatProfiles = (function () {
     return errors;
   }
 
-  // ---- Генерация схематичной SVG-картинки ----
+  // ---- Генерация SVG-картинки в стиле дизайна «Схема микроавтобуса» ----
+  // Визуальный стиль и геометрия — по макетам дизайнера: тёмно-зелёный фон
+  // с жёлтым свечением снизу, белый кузов с серым салоном, кресла
+  // «спинка + сидушка» (зелёные — свободные, красные — занятые),
+  // полупрозрачная плашка-легенда «ЗАНЯТОЕ / СВОБОДНОЕ МЕСТО» под автобусом.
 
-  var CELL_W = 90; // ширина ячейки-места вдоль автобуса (шаг сетки)
-  var CELL_H = 68; // высота ячейки (поперёк салона) — салон "площе", как настоящий
-  var SEAT_W = CELL_W * 0.9; // сама сидушка уже ячейки — между креслами виден зазор
-  var GAP = 22; // расстояние между соседними ячейками (с учётом узкого кресла — заметный проход)
-  var GAP_Y = 10;
-  var PAD = 46;
-  var CABIN_INSET = 16; // отступ салона (голубая зона) от внешнего корпуса
-  var CAB_WIDTH = 70; // небольшая носовая зона справа (лобовое стекло, руль)
+  // Сетка кресел внутри салона (в нативных единицах кресла дизайнера).
+  var COL_GAP = 28; // горизонтальный зазор между креслами (проход по ряду)
+  var ROW_GAP = 8; // вертикальный зазор между рядами
+  var SALON_PAD_X = 40; // отступ салона от крайних колонок кресел
+  var SALON_PAD_Y = 30; // отступ салона от крайних рядов кресел
+  var CANVAS_MARGIN = 70; // поле фона вокруг кузова
+  var LEGEND_GAP_V = 40; // расстояние от кузова до плашки-легенды
 
   var NS = "http://www.w3.org/2000/svg";
+
+  // Геометрия кресла дизайнера, нативный размер 134x107:
+  // спинка слева (перед автобуса — справа), сидушка справа, декоративные
+  // «вставки» на спинке рисуются через маску.
+  var SEAT_DW = 134;
+  var SEAT_DH = 107;
+  var SEAT_BACK_D =
+    "M0 23.7204C0 10.8211 10.8069 0.553861 23.6893 1.21409L40.6882 2.08529V104.915L23.6893 105.786C10.8069 106.446 0 96.1789 0 83.2796V23.7204Z";
+  var SEAT_MASK_D =
+    "M0 22.5359C0 10.0897 10.0897 0 22.5359 0H47V107H22.5359C10.0897 107 0 96.9103 0 84.4641V22.5359Z";
+  var SEAT_DETAIL1_D =
+    "M27.5141 20.4298C27.5141 27.1672 17.4742 32.6289 11.2571 32.6289C5.03996 32.6289 0 27.1672 0 20.4298C0 13.6924 5.03996 -7.93666 11.2571 -7.93666C26.8542 -14.6978 76.0688 3.23376 27.5141 20.4298Z";
+  var SEAT_DETAIL2_D =
+    "M27.5141 86.0971C27.5141 79.3597 17.4742 73.8979 11.2571 73.8979C5.03996 73.8979 0 79.3597 0 86.0971C0 92.8345 5.03996 114.464 11.2571 114.464C26.8542 121.225 76.0688 103.293 27.5141 86.0971Z";
+  var SEAT_CUSHION_D =
+    "M27 20C27 8.9543 35.9543 0 47 0H114C125.046 0 134 8.95431 134 20V87C134 98.0457 125.046 107 114 107H47C35.9543 107 27 98.0457 27 87V20Z";
+
+  // Кузов микроавтобуса дизайнера, нативный размер 1473x621.
+  // Салон (серая зона) в этих координатах: x 92..1253, y 80..550 —
+  // под него масштабируется весь кузов, чтобы вместить сетку кресел.
+  var BUS_DW = 1473;
+  var BUS_DH = 621;
+  var BUS_SALON_X = 92;
+  var BUS_SALON_Y = 80;
+  var BUS_SALON_W = 1161; // 1253 - 92
+  var BUS_SALON_H = 470; // 550 - 80
+  var BUS_BODY_PATHS = [
+    { d: "M0 107.559C0 74.422 26.8629 47.5591 60 47.5591H1275.45C1285.36 47.5591 1295.26 48.3783 1305.04 50.0082L1376.2 61.8689C1402.17 66.1972 1423.52 84.7315 1431.44 109.838L1465.11 216.446C1470.34 233.007 1473 250.271 1473 267.638V316.059V364.48C1473 381.847 1470.34 399.111 1465.11 415.672L1431.44 522.281C1423.52 547.387 1402.17 565.921 1376.2 570.249L1305.04 582.11C1295.26 583.74 1285.36 584.559 1275.45 584.559H60C26.8629 584.559 0 557.696 0 524.559V107.559Z", fill: "white" },
+    { d: "M0 119.334C0 114.431 5.56013 111.598 9.52631 114.479L23.5087 124.636C33.8691 132.162 40 144.193 40 156.999V474.119C40 486.925 33.8691 498.956 23.5087 506.482L9.52632 516.639C5.56013 519.52 0 516.687 0 511.785V504.839V441.746V315.559V189.372V126.279V119.334Z", fill: "#D9D9D9" },
+    { d: "M92 112.559C92 94.886 106.327 80.5591 124 80.5591L1233.77 80.5591C1243.02 80.5591 1251.04 86.96 1253.09 95.98C1285.94 240.522 1285.94 390.596 1253.09 535.138C1251.04 544.158 1243.02 550.559 1233.77 550.559H124C106.327 550.559 92 536.232 92 518.559V112.559Z", fill: "#898989" },
+    { d: "M92 112.74C92 95.0671 106.327 80.7402 124 80.7402H1047C1064.67 80.7402 1079 95.0671 1079 112.74V518.74C1079 536.413 1064.67 550.74 1047 550.74H124C106.327 550.74 92 536.413 92 518.74V112.74Z", fill: "#AFAFAF" },
+    { d: "M40 315.74H0", stroke: "white", "stroke-width": 6 },
+    { d: "M1453 187.212L1291.21 108.476C1285.58 105.735 1279.31 110.818 1280.83 116.893C1313.44 247.33 1313.44 383.788 1280.83 514.225C1279.31 520.3 1285.58 525.383 1291.21 522.643L1453 443.906", stroke: "#F0F0F0", "stroke-width": 6 },
+    { d: "M1392.62 104.644C1388.12 92.0751 1366.71 68.0923 1356.57 58.7402C1421.92 58.7402 1444.09 107.342 1444.09 149.534C1421.56 149.534 1398.26 120.356 1392.62 104.644Z", fill: "#D9D9D9" },
+    { d: "M1392.62 527.63C1388.12 540.199 1366.71 564.182 1356.57 573.534C1421.92 573.534 1444.09 524.933 1444.09 482.74C1421.56 482.74 1398.26 511.919 1392.62 527.63Z", fill: "#D9D9D9" },
+    { d: "M1312.92 160.348C1312.15 154.795 1318.73 151.308 1322.89 155.072L1324.23 156.284C1336.33 167.247 1344.59 181.816 1347.76 197.835L1353.67 227.619C1355.17 235.192 1349.38 242.248 1341.66 242.248C1331.73 242.248 1323.32 234.929 1321.95 225.095L1312.92 160.348Z", fill: "#F0F0F0" },
+    { d: "M1312.92 471.555C1312.15 477.108 1318.73 480.594 1322.89 476.83L1324.23 475.618C1336.33 464.656 1344.59 450.086 1347.76 434.067L1353.67 404.283C1355.17 396.711 1349.38 389.655 1341.66 389.655C1331.73 389.655 1323.32 396.974 1321.95 406.808L1312.92 471.555Z", fill: "#F0F0F0" },
+    { d: "M1258.76 565.847L1271.7 573.316L1283.77 552.405C1285.43 549.535 1284.44 545.866 1281.57 544.209L1279.03 542.74C1276.16 541.083 1272.49 542.067 1270.83 544.936L1258.76 565.847Z", fill: "#F0F0F0" },
+    { d: "M1234.96 607.085L1241.69 610.971C1251.26 616.494 1263.49 613.216 1269.01 603.65L1274.64 593.908C1280.16 584.342 1276.88 572.11 1267.32 566.587L1260.59 562.702L1234.96 607.085Z", fill: "#D9D9D9" },
+    { d: "M1258.76 55.124L1271.7 47.6552L1283.77 68.5655C1285.43 71.4352 1284.44 75.1048 1281.57 76.7616L1279.03 78.2305C1276.16 79.8873 1272.49 78.9041 1270.83 76.0343L1258.76 55.124Z", fill: "#F0F0F0" },
+    { d: "M1234.96 13.8853L1241.69 9.99987C1251.26 4.47702 1263.49 7.75452 1269.01 17.3204L1274.64 27.0629C1280.16 36.6288 1276.88 48.8606 1267.32 54.3834L1260.59 58.2688L1234.96 13.8853Z", fill: "#D9D9D9" },
+  ];
+
+  // Колёсные арки дизайнера (верхняя/нижняя, одинаковые по x: 281..510,
+  // центр 395.5). Рисуются отдельно от кузова: их положение вдоль автобуса
+  // настраивается в профиле (rearWheelsAfterCol).
+  var WHEEL_TOP_D =
+    "M291.088 43.7883C305.646 38.3463 321.063 35.5591 336.606 35.5591H454.394C469.937 35.5591 485.354 38.3463 499.912 43.7883L510 47.5591H281L291.088 43.7883Z";
+  var WHEEL_BOTTOM_D =
+    "M291.088 588.33C305.646 593.772 321.063 596.559 336.606 596.559H454.394C469.937 596.559 485.354 593.772 499.912 588.33L510 584.559H281L291.088 588.33Z";
+  var WHEEL_CENTER_X = 395.5; // центр арки в нативных координатах кузова
+
+  // Плашка-легенда дизайнера (трапеция 1550x203, полупрозрачная).
+  var LEGEND_DW = 1550;
+  var LEGEND_DH = 203;
+  var LEGEND_BAR_D =
+    "M70.7635 111.991C125.705 41.3308 210.196 0 299.702 0H1250.3C1339.8 0 1424.3 41.3308 1479.24 111.991L1550 203H0L70.7635 111.991Z";
+
+  // Счётчик сгенерированных картинок — для уникальных id масок/фильтров,
+  // чтобы несколько SVG на одной странице не конфликтовали.
+  var svgInstanceCounter = 0;
 
   // Копия правил из seatProfiles.css, встраиваемая прямо в генерируемый SVG
   // (нужно для корректного экспорта/копирования картинки — см. generateGenericSVG).
   var GENERIC_SVG_CSS =
-    ".bus-frame{fill:#fdfdfb;stroke:#37414a;stroke-width:3;}" +
-    ".bus-cabin{fill:#dde6f2;stroke:none;}" +
-    ".bus-side-window{fill:#9fbcd4;stroke:none;}" +
-    ".generic-seat{filter:drop-shadow(0 3px 2px rgba(44,58,38,0.35));}" +
-    ".bus-windshield{fill:none;stroke:#7fa3c4;stroke-width:10;stroke-linecap:round;}" +
-    ".bus-steering{fill:none;stroke:#4a555f;stroke-width:4;}" +
-    ".bus-steering-inner{fill:#4a555f;}" +
-    ".bus-wheel{fill:#2c3238;stroke:none;}" +
-    ".bus-wheel-sidewall{fill:#6d7780;}" +
-    ".bus-direction-arrow{fill:none;stroke:#9fb4c8;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;}" +
-    ".bus-headlight{fill:#ffd977;stroke:none;}" +
-    ".bus-tail-light{fill:#d9534f;stroke:none;}" +
-    ".door-floor{fill:#fbfdff;stroke:#6f8ea9;stroke-width:2.5;}" +
-    ".door-threshold{stroke:#f0b429;stroke-width:6;stroke-linecap:round;}" +
-    ".door-leaf{fill:#cfe0ee;stroke:#6f8ea9;stroke-width:2;}" +
-    ".door-handle{stroke:#51677a;stroke-width:3;stroke-linecap:round;}" +
-    ".door-slide-arrow{fill:none;stroke:#7c93a6;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}" +
-    ".door-text{fill:#51677a;font-family:Arial,sans-serif;font-size:12px;font-weight:700;pointer-events:none;stroke:#fff;stroke-width:3px;paint-order:stroke fill;stroke-linejoin:round;}" +
-    ".seat-back{stroke:rgba(30,36,26,0.55);stroke-width:1.5;cursor:pointer;pointer-events:fill;}" +
-    ".seat-cushion{stroke:rgba(30,36,26,0.55);stroke-width:1.5;cursor:pointer;pointer-events:fill;}" +
-    ".seat-back.free,.seat-cushion.free{fill:#8fae55;}" +
-    ".seat-back.free{fill:#79994a;}" +
-    ".seat-back.occupied,.seat-cushion.occupied{fill:#a33a34;}" +
-    ".seat-back.occupied{fill:#8a2e29;}" +
-    ".seat-back.guide,.seat-cushion.guide{fill:#5f7480;cursor:default;}" +
-    ".seat-back.guide{fill:#4c5e67;}" +
-    ".seat-back.driver,.seat-cushion.driver{fill:#3f6680;cursor:default;}" +
-    ".seat-back.driver{fill:#315268;}" +
-    ".seat-text{fill:#f4f7e0;font-size:32px;font-weight:700;font-family:Arial,sans-serif;font-variant-numeric:tabular-nums;pointer-events:none;user-select:none;}" +
-    ".generic-guide .seat-text{font-size:26px;}" +
-    ".generic-driver .seat-text{font-size:18px;}" +
-    ".seat-subtext{fill:#dbe4ea;font-size:13px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;}" +
-    ".legend-label-text{fill:#2c3a26;font-size:22px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;}";
+    ".generic-seat{filter:drop-shadow(0 3px 3px rgba(0,0,0,0.3));}" +
+    ".seat-back{cursor:pointer;pointer-events:fill;}" +
+    ".seat-cushion{cursor:pointer;pointer-events:fill;}" +
+    ".seat-detail{pointer-events:none;}" +
+    ".seat-back.free{fill:#0C3322;}" +
+    ".seat-cushion.free{fill:#0C6D43;}" +
+    ".seat-detail.free{fill:#031B11;}" +
+    ".seat-back.occupied{fill:#6F1616;}" +
+    ".seat-cushion.occupied{fill:#A82020;}" +
+    ".seat-detail.occupied{fill:#530707;}" +
+    ".seat-back.driver{fill:#262626;cursor:default;}" +
+    ".seat-cushion.driver{fill:#333333;cursor:default;}" +
+    ".seat-detail.driver{fill:#050505;}" +
+    ".seat-text{fill:#ffffff;font-size:48px;font-weight:700;font-family:Arial,sans-serif;font-variant-numeric:tabular-nums;pointer-events:none;user-select:none;}" +
+    ".generic-guide .seat-text{font-size:38px;}" +
+    ".generic-driver .seat-text{font-size:30px;}" +
+    ".seat-subtext{fill:#ffffff;font-size:20px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;opacity:0.85;}" +
+    ".door-floor{fill:#f0f0f0;stroke:#898989;stroke-width:2.5;}" +
+    ".door-text{fill:#51677a;font-family:Arial,sans-serif;font-size:20px;font-weight:700;pointer-events:none;user-select:none;}" +
+    ".legend-label-text{fill:#ffffff;font-size:36px;font-weight:700;font-family:Arial,sans-serif;pointer-events:none;user-select:none;}";
 
   function el(tag, attrs) {
     var e = document.createElementNS(NS, tag);
@@ -291,128 +342,51 @@ var SeatProfiles = (function () {
     return e;
   }
 
-  // Строит "d" для прямоугольника с независимо задаваемым радиусом каждого
-  // угла (обычный <rect rx> скругляет все четыре угла одинаково — этого
-  // недостаточно, когда деталь должна одной стороной ровно примыкать
-  // к соседней, а другими — быть скруглённой).
-  function roundedRectPath(x, y, w, h, r) {
-    var tl = Math.min(r.tl || 0, w / 2, h / 2);
-    var tr = Math.min(r.tr || 0, w / 2, h / 2);
-    var br = Math.min(r.br || 0, w / 2, h / 2);
-    var bl = Math.min(r.bl || 0, w / 2, h / 2);
-    return (
-      "M " +
-      (x + tl) +
-      " " +
-      y +
-      " H " +
-      (x + w - tr) +
-      " A " +
-      tr +
-      " " +
-      tr +
-      " 0 0 1 " +
-      (x + w) +
-      " " +
-      (y + tr) +
-      " V " +
-      (y + h - br) +
-      " A " +
-      br +
-      " " +
-      br +
-      " 0 0 1 " +
-      (x + w - br) +
-      " " +
-      (y + h) +
-      " H " +
-      (x + bl) +
-      " A " +
-      bl +
-      " " +
-      bl +
-      " 0 0 1 " +
-      x +
-      " " +
-      (y + h - bl) +
-      " V " +
-      (y + tl) +
-      " A " +
-      tl +
-      " " +
-      tl +
-      " 0 0 1 " +
-      (x + tl) +
-      " " +
-      y +
-      " Z"
-    );
-  }
-
-  // Собирает <g> с сиденьем: спинка — тёмная вертикальная полоса слева,
-  // сидушка — закруглённый прямоугольник справа с номером по центру.
-  // Автобус едет вправо, поэтому пассажир "смотрит" направо, а спинка кресла — слева.
+  // Собирает <g> с креслом дизайнера: спинка + декоративные вставки через
+  // маску + сидушка + номер белым текстом по центру сидушки.
+  // x, y — левый верхний угол кресла; scale — масштаб от нативных 134x107.
   function buildSeatGroup(
     x,
     y,
-    w,
-    h,
+    scale,
     statusClass,
     label,
     specialType,
     subLabel,
+    maskId,
   ) {
     var g = el("g", {
       class:
         "generic-seat" +
         (specialType === "guide" ? " generic-guide" : "") +
         (specialType === "driver" ? " generic-driver" : ""),
+      transform:
+        "translate(" + x + " " + y + ")" +
+        (scale && scale !== 1 ? " scale(" + scale + ")" : ""),
     });
 
-    // Сидушка уже, чем ячейка сетки — центрируем её, оставляя проход по бокам.
-    var seatW = Math.min(SEAT_W, w);
-    var offsetX = x + (w - seatW) / 2;
-    var backW = seatW * 0.22;
+    g.appendChild(
+      el("path", { class: "seat-back " + statusClass, d: SEAT_BACK_D }),
+    );
 
-    // Спинка кресла — узкая полоса. Левые (внешние) углы скруглены заметнее,
-    // правые (у стыка с сидушкой) — небольшим радиусом, чтобы не выглядело
-    // прямым обрубком, но и не создавало зазора со скруглением сидушки.
-    var backR = Math.min(h * 0.14, backW / 2);
-    var backRightR = Math.min(h * 0.05, backW / 2);
-    var back = el("path", {
-      class: "seat-back " + statusClass,
-      d: roundedRectPath(offsetX, y, backW, h, {
-        tl: backR,
-        bl: backR,
-        tr: backRightR,
-        br: backRightR,
-      }),
-    });
-    g.appendChild(back);
+    var detail = el("g", { mask: "url(#" + maskId + ")" });
+    detail.appendChild(
+      el("path", { class: "seat-detail " + statusClass, d: SEAT_DETAIL1_D }),
+    );
+    detail.appendChild(
+      el("path", { class: "seat-detail " + statusClass, d: SEAT_DETAIL2_D }),
+    );
+    g.appendChild(detail);
 
-    // Сидушка (основная часть кресла) примыкает вплотную к спинке — общий
-    // прямой край без скругления, скруглены только внешние углы сидушки.
-    var cushionR = h * 0.16;
-    var cushion = el("path", {
-      class: "seat-cushion " + statusClass,
-      d: roundedRectPath(offsetX + backW, y + h * 0.05, seatW - backW, h * 0.9, {
-        tl: 0,
-        bl: 0,
-        tr: cushionR,
-        br: cushionR,
-      }),
-    });
-    g.appendChild(cushion);
+    g.appendChild(
+      el("path", { class: "seat-cushion " + statusClass, d: SEAT_CUSHION_D }),
+    );
 
-    // Номер центрируем между центром сидушки и центром всей фигуры кресла
-    // (спинка+сидушка): чистый центр сидушки визуально уезжает вправо
-    // (спинка "тянет" взгляд), а центр всей фигуры — слишком влево (спинка
-    // тоньше сидушки и почти не считывается как часть с тем же весом).
-    var textCenterX = offsetX + (backW * 0.45 + seatW) / 2;
+    // Центр сидушки — (80.5, 53.5) в нативных координатах кресла.
     var text = el("text", {
       class: "seat-text",
-      x: textCenterX,
-      y: subLabel ? y + h * 0.4 : y + h / 2,
+      x: 80.5,
+      y: subLabel ? 40 : 53.5,
       "text-anchor": "middle",
       "dominant-baseline": "central",
     });
@@ -422,8 +396,8 @@ var SeatProfiles = (function () {
     if (subLabel) {
       var sub = el("text", {
         class: "seat-subtext",
-        x: textCenterX,
-        y: y + h * 0.74,
+        x: 80.5,
+        y: 84,
         "text-anchor": "middle",
         "dominant-baseline": "central",
       });
@@ -434,98 +408,24 @@ var SeatProfiles = (function () {
     return g;
   }
 
-  // Одностворчатая раздвижная дверь: рама проёма + сдвинутая створка сбоку
-  // (характерно для микроавтобусов/туристических автобусов), с ручкой и
-  // маленькими стрелками, показывающими направление сдвига.
-  function buildDoorGroup(x, y, w, h, side, bodyY0, bodyY1) {
-    var g = el("g", {
-      class: "generic-door generic-door-" + side,
-      "data-door": "true",
-    });
-    var doorWidth = w * 0.62;
-    var doorX = x + (w - doorWidth) / 2;
-    var floorY = side === "top" ? bodyY0 + 5 : y + h * 0.28;
-    var floorBottom = side === "top" ? y + h * 0.72 : bodyY1 - 5;
-    var thresholdY = side === "top" ? bodyY0 + 7 : bodyY1 - 7;
-    var doorH = floorBottom - floorY;
-
-    // Проём двери (рама).
+  // Дверь — светлый проём на месте ячейки сетки с подписью.
+  function buildDoorGroup(x, y, w, h) {
+    var g = el("g", { class: "generic-door", "data-door": "true" });
     g.appendChild(
       el("rect", {
         class: "door-floor",
-        x: doorX,
-        y: floorY,
-        width: doorWidth,
-        height: doorH,
-        rx: 7,
-        ry: 7,
+        x: x + 10,
+        y: y + 6,
+        width: w - 20,
+        height: h - 12,
+        rx: 12,
+        ry: 12,
       }),
     );
-    g.appendChild(
-      el("line", {
-        class: "door-threshold",
-        x1: doorX + 5,
-        y1: thresholdY,
-        x2: doorX + doorWidth - 5,
-        y2: thresholdY,
-      }),
-    );
-
-    // Створка сдвинута к одному краю проёма — открытая часть видна рядом.
-    var leafWidth = doorWidth * 0.56;
-    var leafX = doorX + doorWidth - leafWidth - 3;
-    g.appendChild(
-      el("rect", {
-        class: "door-leaf",
-        x: leafX,
-        y: floorY + 4,
-        width: leafWidth,
-        height: doorH - 8,
-        rx: 5,
-        ry: 5,
-      }),
-    );
-    // Ручка створки — короткая вертикальная перекладина у переднего края.
-    g.appendChild(
-      el("line", {
-        class: "door-handle",
-        x1: leafX + leafWidth * 0.22,
-        y1: floorY + doorH * 0.35,
-        x2: leafX + leafWidth * 0.22,
-        y2: floorY + doorH * 0.65,
-      }),
-    );
-    // Стрелки на открытой части проёма показывают направление сдвига створки.
-    var arrowY = floorY + doorH / 2;
-    [0.28, 0.5].forEach(function (frac) {
-      var ax = doorX + (leafX - doorX) * frac + 6;
-      g.appendChild(
-        el("path", {
-          class: "door-slide-arrow",
-          d:
-            "M " +
-            (ax + 5) +
-            " " +
-            (arrowY - 5) +
-            " L " +
-            (ax - 3) +
-            " " +
-            arrowY +
-            " L " +
-            (ax + 5) +
-            " " +
-            (arrowY + 5),
-        }),
-      );
-    });
-
-    // Подпись держим ближе к салону (подальше от внешнего борта, где рядом
-    // рисуются колёсные выступы) — для верхней и нижней стороны это разные
-    // края дверного проёма.
     var text = el("text", {
       class: "door-text",
-      x: doorX + doorWidth / 2,
-      y: floorY + doorH * (side === "top" ? 0.86 : 0.14),
+      x: x + w / 2,
+      y: y + h / 2,
       "text-anchor": "middle",
       "dominant-baseline": "central",
     });
@@ -533,6 +433,7 @@ var SeatProfiles = (function () {
     g.appendChild(text);
     return g;
   }
+
   function getOccupiedBounds(profile) {
     var minRow = profile.rows;
     var maxRow = -1;
@@ -561,21 +462,34 @@ var SeatProfiles = (function () {
       maxCol: maxCol,
     };
   }
-
   // initialStatus: { seatNumber: 'free'|'occupied' }
   function generateGenericSVG(profile, initialStatus) {
     initialStatus = initialStatus || {};
+    svgInstanceCounter++;
+    var maskId = "seat-mask-" + svgInstanceCounter;
+    var clipId = "canvas-clip-" + svgInstanceCounter;
+    var blurId = "glow-blur-" + svgInstanceCounter;
+
     var bounds = getOccupiedBounds(profile);
     var rows = bounds.maxRow - bounds.minRow + 1;
     var cols = bounds.maxCol - bounds.minCol + 1;
 
-    var seatsWidth = cols * CELL_W + (cols + 1) * GAP;
-    var seatsHeight = rows * CELL_H + (rows + 1) * GAP_Y;
+    // Сетка кресел в нативных единицах кресла; салон кузова масштабируется
+    // под неё (кузов тянется неравномерно — скругления слегка деформируются,
+    // но общий силуэт и пропорции дизайна сохраняются).
+    var gridW = cols * SEAT_DW + (cols - 1) * COL_GAP;
+    var gridH = rows * SEAT_DH + (rows - 1) * ROW_GAP;
+    var salonW = gridW + SALON_PAD_X * 2;
+    var salonH = gridH + SALON_PAD_Y * 2;
 
-    var width = seatsWidth + PAD * 2 + CAB_WIDTH;
-    var height = seatsHeight + PAD * 2;
-    var LEGEND_H = 56; // полоса легенды "свободное/занятое место" под автобусом
-    var totalHeight = height + LEGEND_H;
+    var busSX = salonW / BUS_SALON_W;
+    var busSY = salonH / BUS_SALON_H;
+    var busW = BUS_DW * busSX;
+    var busH = BUS_DH * busSY;
+
+    var width = busW + CANVAS_MARGIN * 2;
+    var legendH = width * (LEGEND_DH / LEGEND_DW);
+    var totalHeight = CANVAS_MARGIN + busH + LEGEND_GAP_V + legendH;
 
     var svg = el("svg", {
       id: "_generic_bus_svg",
@@ -592,243 +506,113 @@ var SeatProfiles = (function () {
     styleEl.textContent = GENERIC_SVG_CSS;
     svg.appendChild(styleEl);
 
-    var bodyX0 = PAD / 2;
-    var bodyY0 = PAD / 2;
-    var bodyX1 = width - PAD / 2;
-    var bodyY1 = height - PAD / 2;
+    var defs = el("defs");
 
-    // Кузов автобуса.
-    svg.appendChild(
-      el("path", {
-        class: "bus-frame",
-        d: buildFramePath(width, height, PAD),
-      }),
+    // Клип по холсту — свечение не должно вылезать за края картинки.
+    var clip = el("clipPath", { id: clipId });
+    clip.appendChild(
+      el("rect", { x: 0, y: 0, width: width, height: totalHeight }),
     );
+    defs.appendChild(clip);
 
-    // Пол салона — единое пространство, включая места водителя и гида.
+    // Размытие для жёлтого свечения (гауссово, как в макете).
+    var blur = el("filter", {
+      id: blurId,
+      x: "-50%",
+      y: "-50%",
+      width: "200%",
+      height: "200%",
+    });
+    blur.appendChild(
+      el("feGaussianBlur", { stdDeviation: 105 * (width / LEGEND_DW) }),
+    );
+    defs.appendChild(blur);
+
+    // Маска декоративных вставок на спинке кресла (общая для всех кресел).
+    var mask = el("mask", {
+      id: maskId,
+      maskUnits: "userSpaceOnUse",
+      x: 0,
+      y: 0,
+      width: SEAT_DW,
+      height: SEAT_DH,
+    });
+    mask.appendChild(el("path", { d: SEAT_MASK_D, fill: "white" }));
+    defs.appendChild(mask);
+
+    svg.appendChild(defs);
+
+    // Фон: тёмно-зелёный + жёлтое свечение снизу по центру.
     svg.appendChild(
       el("rect", {
-        class: "bus-cabin",
-        x: bodyX0 + CABIN_INSET,
-        y: bodyY0 + CABIN_INSET,
-        width: width - PAD - CABIN_INSET * 2,
-        height: height - PAD - CABIN_INSET * 2,
-        rx: 18,
-        ry: 18,
+        x: 0,
+        y: 0,
+        width: width,
+        height: totalHeight,
+        fill: "#0C6D43",
       }),
     );
+    var glowScale = width / LEGEND_DW;
+    var glow = el("g", { "clip-path": "url(#" + clipId + ")" });
+    glow.appendChild(
+      el("ellipse", {
+        cx: width / 2,
+        cy: totalHeight + 281 * glowScale,
+        rx: 744 * glowScale,
+        ry: 515 * glowScale,
+        fill: "#FBBC04",
+        filter: "url(#" + blurId + ")",
+      }),
+    );
+    svg.appendChild(glow);
 
-    // Дверь в профиле "выключает" оконную секцию своего борта. Двери могут
-    // быть с обеих сторон одной колонки одновременно, поэтому храним набор
-    // сторон, а не единственное значение.
-    var doorSidesByColumn = {};
-    for (var doorRow = bounds.minRow; doorRow <= bounds.maxRow; doorRow++) {
-      for (var doorCol = bounds.minCol; doorCol <= bounds.maxCol; doorCol++) {
-        var doorCell = profile.cells[doorRow * profile.cols + doorCol];
-        if (doorCell && doorCell.type === "door") {
-          var localDoorCol = doorCol - bounds.minCol;
-          var distanceToTop = doorRow - bounds.minRow;
-          var distanceToBottom = bounds.maxRow - doorRow;
-          var side = distanceToTop <= distanceToBottom ? "top" : "bottom";
-          if (!doorSidesByColumn[localDoorCol]) {
-            doorSidesByColumn[localDoorCol] = {};
-          }
-          doorSidesByColumn[localDoorCol][side] = true;
-        }
+    // Кузов автобуса (масштабированный кузов дизайнера).
+    var busX0 = CANVAS_MARGIN;
+    var busY0 = CANVAS_MARGIN;
+    var busGroup = el("g", {
+      class: "bus-body",
+      transform:
+        "translate(" + busX0 + " " + busY0 + ") scale(" + busSX + " " + busSY + ")",
+    });
+    BUS_BODY_PATHS.forEach(function (p) {
+      var attrs = { d: p.d };
+      if (p.stroke) {
+        attrs.stroke = p.stroke;
+        attrs["stroke-width"] = p["stroke-width"];
+        attrs.fill = "none";
+      } else {
+        attrs.fill = p.fill;
       }
-    }
+      busGroup.appendChild(el("path", attrs));
+    });
+    svg.appendChild(busGroup);
 
-    // Оси колёс. Задняя ось: либо между указанными колонками, либо автоматически.
-    var rearAxleX = bodyX0 + Math.max(82, seatsWidth * 0.18);
+    // Сетка кресел центрируется внутри салона кузова.
+    var salonX = busX0 + BUS_SALON_X * busSX;
+    var salonY = busY0 + BUS_SALON_Y * busSY;
+    var seatX0 = salonX + (salonW - gridW) / 2;
+    var seatY0 = salonY + (salonH - gridH) / 2;
+
+    // Колёсные арки: положение задней оси настраивается в профиле (между
+    // какими колонками мест), как в старом генераторе. Если настройка не
+    // задана или некорректна — штатная позиция арок из макета дизайнера.
+    var wheelDx = 0;
     var rearAfterCol = parseInt(profile.rearWheelsAfterCol, 10);
     if (!isNaN(rearAfterCol)) {
       var localBoundary = rearAfterCol - bounds.minCol;
       if (localBoundary >= 1 && localBoundary <= cols - 1) {
-        rearAxleX = PAD + GAP + localBoundary * (CELL_W + GAP) - GAP / 2;
+        var wheelCenterCanvasX =
+          seatX0 + localBoundary * (SEAT_DW + COL_GAP) - COL_GAP / 2;
+        wheelDx = (wheelCenterCanvasX - busX0) / busSX - WHEEL_CENTER_X;
       }
     }
-    var frontAxleX = bodyX1 - 96;
-
-    // Боковые окна выровнены по колонкам кресел — ровный ритм остекления.
-    for (var windowCol = 0; windowCol < cols; windowCol++) {
-      var windowX = PAD + GAP + windowCol * (CELL_W + GAP) + 6;
-      [
-        { y: bodyY0 + 5, side: "top" },
-        { y: bodyY1 - 15, side: "bottom" },
-      ].forEach(function (windowSide) {
-        if (
-          doorSidesByColumn[windowCol] &&
-          doorSidesByColumn[windowCol][windowSide.side]
-        ) {
-          return;
-        }
-        svg.appendChild(
-          el("rect", {
-            class: "bus-side-window",
-            x: windowX,
-            y: windowSide.y,
-            width: CELL_W - 12,
-            height: 10,
-            rx: 5,
-            ry: 5,
-          }),
-        );
-      });
-    }
-
-    // Заднее стекло.
-    svg.appendChild(
-      el("rect", {
-        class: "bus-side-window",
-        x: bodyX0 + 5,
-        y: height / 2 - Math.max(30, seatsHeight * 0.22),
-        width: 10,
-        height: Math.max(60, seatsHeight * 0.44),
-        rx: 5,
-        ry: 5,
-      }),
-    );
-
-    // Лобовое стекло и руль (отдельной кабины нет — салон единый).
-    svg.appendChild(
-      el("path", {
-        class: "bus-windshield",
-        d:
-          "M " +
-          (bodyX1 - 30) +
-          " " +
-          (bodyY0 + 58) +
-          " Q " +
-          (bodyX1 - 12) +
-          " " +
-          height / 2 +
-          " " +
-          (bodyX1 - 30) +
-          " " +
-          (bodyY1 - 58),
-      }),
-    );
-
-    // Руль — на уровне места водителя и вплотную перед ним (по ходу движения).
-    var driverCenterY = null;
-    var driverRightX = null;
-    for (var dRow = bounds.minRow; dRow <= bounds.maxRow; dRow++) {
-      for (var dCol = bounds.minCol; dCol <= bounds.maxCol; dCol++) {
-        var dCell = profile.cells[dRow * profile.cols + dCol];
-        if (dCell && dCell.type === "driver") {
-          driverCenterY =
-            PAD +
-            GAP_Y +
-            (dRow - bounds.minRow) * (CELL_H + GAP_Y) +
-            CELL_H / 2;
-          driverRightX =
-            PAD + GAP + (dCol - bounds.minCol) * (CELL_W + GAP) + CELL_W;
-        }
-      }
-    }
-    var steeringX =
-      driverRightX !== null
-        ? Math.min(driverRightX + 24, bodyX1 - 30)
-        : bodyX1 - 48;
-    var steeringY = driverCenterY !== null ? driverCenterY : bodyY0 + 58;
-    svg.appendChild(
-      el("circle", {
-        class: "bus-steering",
-        cx: steeringX,
-        cy: steeringY,
-        r: 16,
-      }),
-    );
-    svg.appendChild(
-      el("circle", {
-        class: "bus-steering-inner",
-        cx: steeringX,
-        cy: steeringY,
-        r: 5,
-      }),
-    );
-
-    // Колёса рисуются под кузовом (первым слоем): снаружи виден только
-    // аккуратный выступ шины — примыкание к борту получается само собой.
-    var wheelsLayer = el("g", { class: "wheels-layer" });
-    [rearAxleX, frontAxleX].forEach(function (wheelX) {
-      [
-        { y: bodyY0 - 14, sidewallY: bodyY0 - 8 },
-        { y: bodyY1 - 10, sidewallY: bodyY1 + 1 },
-      ].forEach(function (wheelPos) {
-        wheelsLayer.appendChild(
-          el("rect", {
-            class: "bus-wheel",
-            x: wheelX - 34,
-            y: wheelPos.y,
-            width: 68,
-            height: 24,
-            rx: 8,
-            ry: 8,
-          }),
-        );
-        wheelsLayer.appendChild(
-          el("rect", {
-            class: "bus-wheel-sidewall",
-            x: wheelX - 22,
-            y: wheelPos.sidewallY,
-            width: 44,
-            height: 5,
-            rx: 2.5,
-            ry: 2.5,
-          }),
-        );
-      });
+    var wheelsGroup = el("g", {
+      class: "bus-wheels",
+      transform: "translate(" + wheelDx + " 0)",
     });
-    svg.insertBefore(wheelsLayer, svg.firstChild);
-
-    // Стрелка направления движения — перед лобовым стеклом, со стороны салона,
-    // чтобы не перекрывать стекло.
-    var noseArrowX = bodyX1 - 66;
-    svg.appendChild(
-      el("path", {
-        class: "bus-direction-arrow",
-        d:
-          "M " +
-          (noseArrowX - 5) +
-          " " +
-          (height / 2 - 9) +
-          " L " +
-          (noseArrowX + 4) +
-          " " +
-          height / 2 +
-          " L " +
-          (noseArrowX - 5) +
-          " " +
-          (height / 2 + 9),
-      }),
-    );
-
-    // Светотехника: фары на носу, фонари на корме.
-    [bodyY0 + 44, bodyY1 - 44].forEach(function (lightY) {
-      svg.appendChild(
-        el("rect", {
-          class: "bus-headlight",
-          x: bodyX1 - 12,
-          y: lightY - 10,
-          width: 8,
-          height: 20,
-          rx: 4,
-          ry: 4,
-        }),
-      );
-      svg.appendChild(
-        el("rect", {
-          class: "bus-tail-light",
-          x: bodyX0 + 4,
-          y: lightY - 9,
-          width: 6,
-          height: 18,
-          rx: 3,
-          ry: 3,
-        }),
-      );
-    });
+    wheelsGroup.appendChild(el("path", { d: WHEEL_TOP_D, fill: "#CFCFCF" }));
+    wheelsGroup.appendChild(el("path", { d: WHEEL_BOTTOM_D, fill: "#CFCFCF" }));
+    busGroup.appendChild(wheelsGroup);
 
     var seatsLayer = el("g", { class: "seats-layer" });
 
@@ -840,16 +624,11 @@ var SeatProfiles = (function () {
           continue;
         }
 
-        var x = PAD + GAP + (c - bounds.minCol) * (CELL_W + GAP);
-        var y = PAD + GAP_Y + (r - bounds.minRow) * (CELL_H + GAP_Y);
+        var x = seatX0 + (c - bounds.minCol) * (SEAT_DW + COL_GAP);
+        var y = seatY0 + (r - bounds.minRow) * (SEAT_DH + ROW_GAP);
 
         if (cell.type === "door") {
-          var distanceToTop = r - bounds.minRow;
-          var distanceToBottom = bounds.maxRow - r;
-          var doorSide = distanceToTop <= distanceToBottom ? "top" : "bottom";
-          seatsLayer.appendChild(
-            buildDoorGroup(x, y, CELL_W, CELL_H, doorSide, bodyY0, bodyY1),
-          );
+          seatsLayer.appendChild(buildDoorGroup(x, y, SEAT_DW, SEAT_DH));
           continue;
         }
         if (cell.type === "guide") {
@@ -860,12 +639,12 @@ var SeatProfiles = (function () {
           var gg = buildSeatGroup(
             x,
             y,
-            CELL_W,
-            CELL_H,
+            1,
             guideStatus,
             cell.number != null ? cell.number : "Гид",
             "guide",
             "Гид",
+            maskId,
           );
           gg.setAttribute("data-guide", "true");
           if (cell.number != null) {
@@ -879,11 +658,12 @@ var SeatProfiles = (function () {
           var dg = buildSeatGroup(
             x,
             y,
-            CELL_W,
-            CELL_H,
+            1,
             "driver",
             "Вод.",
             "driver",
+            null,
+            maskId,
           );
           dg.setAttribute("data-driver", "true");
           seatsLayer.appendChild(dg);
@@ -896,11 +676,12 @@ var SeatProfiles = (function () {
           var sg = buildSeatGroup(
             x,
             y,
-            CELL_W,
-            CELL_H,
+            1,
             status,
             cell.number,
             null,
+            null,
+            maskId,
           );
           sg.setAttribute("data-seat", cell.number);
           seatsLayer.appendChild(sg);
@@ -910,48 +691,34 @@ var SeatProfiles = (function () {
 
     svg.appendChild(seatsLayer);
 
-    // Легенда "свободное / занятое место" — часть самой картинки, чтобы
-    // сохранялась и при копировании/скачивании PNG.
-    var legendY = height + LEGEND_H / 2 - 16;
-    var legendIconW = 40;
-    var legendIconH = 32;
-    var legendGap = 10; // между иконкой и подписью (внутри одного пункта — плотнее)
-    var legendItemGap = 70; // между "свободное место" и "занятое место" (пункты — дальше друг от друга)
-
-    var legendItems = [
-      { status: "free", label: "свободное место" },
-      { status: "occupied", label: "занятое место" },
-    ];
-
-    // Считаем ширину каждого пункта по длине текста, чтобы разместить оба
-    // пункта по центру картинки.
-    var approxCharW = 9.5;
-    var itemWidths = legendItems.map(function (item) {
-      return legendIconW + legendGap + item.label.length * approxCharW;
+    // Плашка-легенда «ЗАНЯТОЕ / СВОБОДНОЕ МЕСТО» — часть самой картинки,
+    // чтобы сохранялась и при копировании/скачивании PNG.
+    var legendScale = width / LEGEND_DW;
+    var legendLayer = el("g", {
+      class: "seat-legend-layer",
+      transform:
+        "translate(0 " + (totalHeight - legendH) + ") scale(" + legendScale + ")",
     });
-    var legendTotalWidth = itemWidths[0] + itemWidths[1] + legendItemGap;
-    var legendX = (width - legendTotalWidth) / 2;
-
-    var legendLayer = el("g", { class: "seat-legend-layer" });
-    legendItems.forEach(function (item, i) {
-      var itemX = legendX;
-      for (var k = 0; k < i; k++) {
-        itemX += itemWidths[k] + legendItemGap;
-      }
-      var iconGroup = buildSeatGroup(
-        itemX,
-        legendY,
-        legendIconW,
-        legendIconH,
-        item.status,
-        "",
+    legendLayer.appendChild(
+      el("path", {
+        d: LEGEND_BAR_D,
+        fill: "#3AA878",
+        "fill-opacity": 0.2,
+      }),
+    );
+    // Позиции мини-кресел и подписей — как в макете дизайнера:
+    // красное кресло слева («занятое»), зелёное справа («свободное»).
+    [
+      { status: "occupied", label: "ЗАНЯТОЕ МЕСТО", x: 292 },
+      { status: "free", label: "СВОБОДНОЕ МЕСТО", x: 820 },
+    ].forEach(function (item) {
+      legendLayer.appendChild(
+        buildSeatGroup(item.x, 54, 1, item.status, "", null, null, maskId),
       );
-      legendLayer.appendChild(iconGroup);
-
       var labelText = el("text", {
         class: "legend-label-text",
-        x: itemX + legendIconW + legendGap,
-        y: legendY + legendIconH / 2,
+        x: item.x + 170,
+        y: 107.5,
         "dominant-baseline": "central",
       });
       labelText.textContent = item.label;
@@ -963,75 +730,9 @@ var SeatProfiles = (function () {
     return svg;
   }
 
-  // Путь корпуса автобуса: закруглённый нос справа (перед), более прямая корма слева (зад).
-  function buildFramePath(width, height, pad) {
-    var x0 = pad / 2;
-    var y0 = pad / 2;
-    var x1 = width - pad / 2;
-    var y1 = height - pad / 2;
-    var rearR = 18; // радиус скругления кормы (слева)
-    var frontR = 46; // радиус скругления носа (справа)
-
-    return (
-      "M " +
-      (x0 + rearR) +
-      " " +
-      y0 +
-      " L " +
-      (x1 - frontR) +
-      " " +
-      y0 +
-      " Q " +
-      x1 +
-      " " +
-      y0 +
-      " " +
-      x1 +
-      " " +
-      (y0 + frontR) +
-      " L " +
-      x1 +
-      " " +
-      (y1 - frontR) +
-      " Q " +
-      x1 +
-      " " +
-      y1 +
-      " " +
-      (x1 - frontR) +
-      " " +
-      y1 +
-      " L " +
-      (x0 + rearR) +
-      " " +
-      y1 +
-      " Q " +
-      x0 +
-      " " +
-      y1 +
-      " " +
-      x0 +
-      " " +
-      (y1 - rearR) +
-      " L " +
-      x0 +
-      " " +
-      (y0 + rearR) +
-      " Q " +
-      x0 +
-      " " +
-      y0 +
-      " " +
-      (x0 + rearR) +
-      " " +
-      y0 +
-      " Z"
-    );
-  }
-
   // Установить визуальный статус места на generic SVG (jQuery-обёртка $svg).
-  // Спинка/сидушка рисуются как <path> (со скруглёнными углами), поэтому
-  // селектор не привязан к тегу — только к data-seat и классам элементов.
+  // Спинка/сидушка/вставки рисуются как <path>, поэтому селектор не привязан
+  // к тегу — только к data-seat и классам элементов.
   function setGenericSeatStatus($svg, seatNumber, isFree) {
     var $rects = $svg.find(
       '[data-seat="' +
@@ -1039,7 +740,10 @@ var SeatProfiles = (function () {
         '"] .seat-back, ' +
         '[data-seat="' +
         seatNumber +
-        '"] .seat-cushion',
+        '"] .seat-cushion, ' +
+        '[data-seat="' +
+        seatNumber +
+        '"] .seat-detail',
     );
     $rects.removeClass("free occupied").addClass(isFree ? "free" : "occupied");
   }
@@ -1047,16 +751,28 @@ var SeatProfiles = (function () {
   // Небольшая самостоятельная SVG-иконка кресла для легенды/подсказок —
   // точная копия отрисовки места на схеме (спинка + сидушка), без номера.
   function generateSeatIconSVG(statusClass) {
-    var w = 46;
-    var h = 40;
+    svgInstanceCounter++;
+    var maskId = "seat-icon-mask-" + svgInstanceCounter;
     var svg = el("svg", {
       xmlns: NS,
-      viewBox: "0 0 " + w + " " + h,
-      width: w,
-      height: h,
+      viewBox: "0 0 " + SEAT_DW + " " + SEAT_DH,
+      width: 56,
+      height: 45,
       class: "seat-legend-icon",
     });
-    svg.appendChild(buildSeatGroup(3, 2, w - 6, h - 4, statusClass, ""));
+    var mask = el("mask", {
+      id: maskId,
+      maskUnits: "userSpaceOnUse",
+      x: 0,
+      y: 0,
+      width: SEAT_DW,
+      height: SEAT_DH,
+    });
+    mask.appendChild(el("path", { d: SEAT_MASK_D, fill: "white" }));
+    var defs = el("defs");
+    defs.appendChild(mask);
+    svg.appendChild(defs);
+    svg.appendChild(buildSeatGroup(0, 0, 1, statusClass, "", null, null, maskId));
     return svg;
   }
 

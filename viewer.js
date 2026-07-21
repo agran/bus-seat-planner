@@ -730,14 +730,18 @@ $(document).ready(function () {
     canvas.width = baseWidth;
     canvas.height = baseHeight + listHeight;
     var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
+    // У generic-схемы тёмно-зелёный фон (дизайн «Схема микроавтобуса»),
+    // поэтому и блок списка делаем в той же гамме; у классической схемы
+    // фон белый — оставляем, как было.
+    var darkBg = !isClassicProfile;
+    ctx.fillStyle = darkBg ? "#0c6d43" : "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, baseWidth, baseHeight);
 
     var boldFont = "bold " + fontSize + "px Arial, sans-serif";
     var commentFont = "italic " + fontSize + "px Arial, sans-serif";
-    var mainColor = "#222222";
-    var commentColor = "#1d6fa5";
+    var mainColor = darkBg ? "#ffffff" : "#222222";
+    var commentColor = darkBg ? "#ffd34d" : "#1d6fa5";
     ctx.textBaseline = "top";
     seats.forEach(function (seat, i) {
       var col = Math.floor(i / rowsPerColumn);

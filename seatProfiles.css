@@ -1,170 +1,84 @@
 /* seatProfiles.css — стили generic SVG-схемы, общие для admin.html и index.html */
-
-.bus-frame {
-  fill: #fdfdfb;
-  stroke: #37414a;
-  stroke-width: 3;
-}
-
-.bus-cabin {
-  fill: #dde6f2;
-  stroke: none;
-}
-
-.bus-side-window {
-  fill: #9fbcd4;
-  stroke: none;
-}
+/* Палитра и геометрия — по макетам дизайнера («Схема микроавтобуса»).   */
+/* Держать в синхроне с GENERIC_SVG_CSS в seatProfiles.js (та копия      */
+/* встраивается в сам SVG для экспорта в PNG).                           */
 
 .generic-seat {
-  filter: drop-shadow(0 3px 2px rgba(44, 58, 38, 0.35));
-}
-
-.bus-windshield {
-  fill: none;
-  stroke: #7fa3c4;
-  stroke-width: 10;
-  stroke-linecap: round;
-}
-
-.bus-steering {
-  fill: none;
-  stroke: #4a555f;
-  stroke-width: 4;
-}
-
-.bus-steering-inner {
-  fill: #4a555f;
-}
-
-.bus-wheel {
-  fill: #2c3238;
-  stroke: none;
-}
-
-.bus-wheel-sidewall {
-  fill: #6d7780;
-}
-
-.bus-direction-arrow {
-  fill: none;
-  stroke: #9fb4c8;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.bus-headlight {
-  fill: #ffd977;
-  stroke: none;
-}
-
-.bus-tail-light {
-  fill: #d9534f;
-  stroke: none;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
 }
 
 .door-floor {
-  fill: #fbfdff;
-  stroke: #6f8ea9;
+  fill: #f0f0f0;
+  stroke: #898989;
   stroke-width: 2.5;
-}
-
-.door-threshold {
-  stroke: #f0b429;
-  stroke-width: 6;
-  stroke-linecap: round;
-}
-
-.door-leaf {
-  fill: #cfe0ee;
-  stroke: #6f8ea9;
-  stroke-width: 2;
-}
-
-.door-handle {
-  stroke: #51677a;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-
-.door-slide-arrow {
-  fill: none;
-  stroke: #7c93a6;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .door-text {
   fill: #51677a;
   font-family: Arial, sans-serif;
-  font-size: 12px;
+  font-size: 20px;
   font-weight: 700;
   pointer-events: none;
-  stroke: #fff;
-  stroke-width: 3px;
-  paint-order: stroke fill;
-  stroke-linejoin: round;
+  user-select: none;
 }
 
 /* --- Кресла (спинка слева, т.к. перед автобуса — справа) --- */
 
 .seat-back {
-  stroke: rgba(30, 36, 26, 0.55);
-  stroke-width: 1.5;
   cursor: pointer;
   pointer-events: fill;
 }
 
 .seat-cushion {
-  stroke: rgba(30, 36, 26, 0.55);
-  stroke-width: 1.5;
   cursor: pointer;
   pointer-events: fill;
 }
 
-.seat-back.free,
-.seat-cushion.free {
-  fill: #8fae55;
+.seat-detail {
+  pointer-events: none;
 }
 
 .seat-back.free {
-  fill: #79994a;
+  fill: #0c3322;
 }
 
-.seat-back.occupied,
-.seat-cushion.occupied {
-  fill: #a33a34;
+.seat-cushion.free {
+  fill: #0c6d43;
+}
+
+.seat-detail.free {
+  fill: #031b11;
 }
 
 .seat-back.occupied {
-  fill: #8a2e29;
+  fill: #6f1616;
 }
 
-.seat-back.guide,
-.seat-cushion.guide {
-  fill: #5f7480;
-  cursor: default;
+.seat-cushion.occupied {
+  fill: #a82020;
 }
 
-.seat-back.guide {
-  fill: #4c5e67;
-}
-
-.seat-back.driver,
-.seat-cushion.driver {
-  fill: #3f6680;
-  cursor: default;
+.seat-detail.occupied {
+  fill: #530707;
 }
 
 .seat-back.driver {
-  fill: #315268;
+  fill: #262626;
+  cursor: default;
+}
+
+.seat-cushion.driver {
+  fill: #333333;
+  cursor: default;
+}
+
+.seat-detail.driver {
+  fill: #050505;
 }
 
 .seat-text {
-  fill: #f4f7e0;
-  font-size: 32px;
+  fill: #ffffff;
+  font-size: 48px;
   font-weight: 700;
   font-family: Arial, sans-serif;
   font-variant-numeric: tabular-nums;
@@ -174,25 +88,26 @@
 }
 
 .generic-guide .seat-text {
-  font-size: 26px;
+  font-size: 38px;
 }
 
 .generic-driver .seat-text {
-  font-size: 18px;
+  font-size: 30px;
 }
 
 .seat-subtext {
-  fill: #dbe4ea;
-  font-size: 13px;
+  fill: #ffffff;
+  font-size: 20px;
   font-weight: 700;
   font-family: Arial, sans-serif;
   pointer-events: none;
   user-select: none;
+  opacity: 0.85;
 }
 
 .legend-label-text {
-  fill: #2c3a26;
-  font-size: 22px;
+  fill: #ffffff;
+  font-size: 36px;
   font-weight: 700;
   font-family: Arial, sans-serif;
   pointer-events: none;
