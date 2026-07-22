@@ -736,7 +736,49 @@ $(document).ready(function () {
     var darkBg = !isClassicProfile;
     ctx.fillStyle = darkBg ? "#0c6d43" : "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (darkBg) {
+      // Продолжаем жёлтое свечение снизу картинки в область списка, иначе
+      // на стыке получается резкий переход «свечение → плоский зелёный».
+      // Параметры эллипса и размытия — те же, что в SVG (viewBox 1550x960:
+      // центр (775, 1241), радиусы 744x515, гауссово размытие 105),
+      // пересчитанные на ширину картинки. Размытие делаем тем же
+      // гауссовым фильтром (ctx.filter), чтобы яркость на линии стыка
+      // совпадала с картинкой и шва не было видно.
+      var glowS = baseWidth / 1550;
+      var glowCx = baseWidth / 2;
+      var glowCy = baseHeight + 281 * glowS;
+      if (typeof ctx.filter === "string") {
+        ctx.save();
+        ctx.filter = "blur(" + 105 * glowS + "px)";
+        ctx.fillStyle = "#FBBC04";
+        ctx.beginPath();
+        ctx.ellipse(glowCx, glowCy, 744 * glowS, 515 * glowS, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        // Запасной вариант для браузеров без ctx.filter — радиальный
+        // градиент (стык чуть заметнее, но фон всё равно не плоский).
+        ctx.save();
+        ctx.translate(glowCx, glowCy);
+        ctx.scale(744 * glowS, 515 * glowS);
+        var glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        glowGrad.addColorStop(0, "rgba(251,188,4,1)");
+        glowGrad.addColorStop(1, "rgba(251,188,4,0)");
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
     ctx.drawImage(img, 0, 0, baseWidth, baseHeight);
+    if (darkBg) {
+      // Низ картинки накрыт полупрозрачной плашкой легенды (#3AA878, 20%),
+      // которая приглушает свечение. Накрываем область списка той же
+      // вуалью, иначе на стыке виден скачок яркости жёлтого.
+      ctx.fillStyle = "rgba(58,168,120,0.2)";
+      ctx.fillRect(0, baseHeight, canvas.width, listHeight);
+    }
 
     var boldFont = "bold " + fontSize + "px Arial, sans-serif";
     var commentFont = "italic " + fontSize + "px Arial, sans-serif";
